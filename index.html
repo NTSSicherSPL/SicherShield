@@ -3228,7 +3228,8 @@ function showDetail(id) {
         <div class="equip-hero-meta">
           <div class="meta-item"><div class="meta-key">Producător</div><div class="meta-val">${eq.manufacturer||'—'}</div></div>
           <div class="meta-item"><div class="meta-key">Model</div><div class="meta-val">${eq.model||'—'}</div></div>
-          <div class="meta-item"><div class="meta-key">Data cumpărare</div><div class="meta-val">${formatDate(eq.purchaseDate)}</div></div>
+          ${eq.lot ? `<div class="meta-item"><div class="meta-key">Lot / Batch</div><div class="meta-val">${eq.lot}</div></div>` : ''}
+          <div class="meta-item"><div class="meta-key">Data primei utilizări</div><div class="meta-val">${formatDate(eq.purchaseDate)}</div></div>
           <div class="meta-item"><div class="meta-key">Data fabricație</div><div class="meta-val">${formatDate(eq.manufactureDate)}</div></div>
           <div class="meta-item"><div class="meta-key">Locație</div><div class="meta-val">${eq.location||'—'}</div></div>
           <div class="meta-item"><div class="meta-key">Utilizator/Proprietar</div><div class="meta-val">${eq.owner||'—'}</div></div>
@@ -3407,16 +3408,24 @@ function renderInspectForm(equipId) {
             <select id="insp-equip-sel" onchange="changeInspectEquip(this.value)">
               <option value="">— Alege echipamentul —</option>
               ${db.equipment.filter(e=>e.status!=='ret').map(e=>`<option value="${e.id}">${e.name} (${e.serial})</option>`).join('')}
-            </select></div>`
+            </select>
+            <div style="margin-top:10px;padding:12px 14px;background:rgba(240,90,26,.06);border:1px dashed rgba(240,90,26,.35);border-radius:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <span style="font-size:12px;color:var(--text3)">Echipamentul nu este în baza de date?</span>
+              <button class="btn btn-primary btn-sm" onclick="showAddEquipFromInspection()" type="button">＋ Adaugă echipament nou</button>
+            </div></div>`
       }
     </div>
 
     <div class="card">
       <div class="card-title">👤 Inspector & Dată</div>
-      <div class="form-row">
+      <div class="form-grid">
         <div class="form-group">
-          <label class="form-label">Inspector <span class="form-required">*</span></label>
-          <input type="text" id="insp-inspector" placeholder="Nume inspector" value="Alin Spulbatu" />
+          <label class="form-label">Inspector (Nume) <span class="form-required">*</span></label>
+          <input type="text" id="insp-inspector" placeholder="Nume inspector" value="${loadDriveConfig().inspectorName||''}" oninput="saveInspectorName(this.value)" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nr. Certificare Inspector</label>
+          <input type="text" id="insp-cert-nr" placeholder="ex: 12345" value="${loadDriveConfig().inspectorCert||''}" oninput="saveInspectorCert(this.value)" />
         </div>
         <div class="form-group">
           <label class="form-label">Data inspecției <span class="form-required">*</span></label>
@@ -3447,6 +3456,35 @@ function renderInspectForm(equipId) {
       </div>
     </div>
 
+    <div class="card" style="border-color:rgba(248,113,113,.3)">
+      <div class="card-title" style="color:var(--red)">⚠️ Criterii obligatorii de retragere din uz</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+        Bifează dacă oricare criteriu se aplică — echipamentul trebuie retras imediat.<br>
+        <em>Tick if any criterion applies — withdraw equipment immediately.</em>
+      </div>
+      <div class="checklist">
+        ${[
+          'Echipamentul a oprit o cădere (chiar și fără defecte vizibile)',
+          'Amortizor de șoc declanșat (bandă interioară vizibilă, capac rupt)',
+          'Benzi cu tăieturi, fire rupte, decolorare severă sau abraziune grea',
+          'Cusături rupte, fire proeminente sau zone slăbite',
+          'Conectori / carabiniere cu deformări, fisuri sau coroziune severă',
+          'Mecanismul de blocare nu se închide complet sau este blocat',
+          'Marcajele producătorului absente sau ilizibile',
+          'Echipament expus la chimicale, foc sau temperaturi peste 60°C',
+          'Durata de viață maximă depășită',
+          'Defect funcțional constatat la inspecție'
+        ].map((crit, i) => `
+          <div class="check-row" style="cursor:default" id="wdr-row-${i}">
+            <span class="check-label" style="font-size:13px">${crit}</span>
+            <div class="check-btns">
+              <button class="check-btn" id="wdr-btn-${i}" title="Bifează" onclick="toggleWithdrawal(${i}, this)">✕</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">📸 Fotografii deteriorări — generale</div>
       <p style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">Foto generale ale echipamentului sau deteriorărilor neassociate unui punct. Imaginile sunt comprimate automat (~200 KB).</p>
@@ -3473,6 +3511,7 @@ function renderInspectForm(equipId) {
 
     <div class="d-flex" style="justify-content:flex-end;gap:8px">
       <button class="btn btn-ghost" onclick="showPage('equipment')">Anulare</button>
+      <button class="btn btn-sec" onclick="saveInspection(true)">📄 Salvează + PDF</button>
       <button class="btn btn-primary" onclick="saveInspection()">💾 Salvează inspecția</button>
     </div>
   `;
@@ -3490,11 +3529,40 @@ function renderInspectForm(equipId) {
   });
 
   window._inspVerdict = null;
+  window._inspWithdrawal = new Array(10).fill(false);
 }
 
 function changeInspectEquip(id) {
   currentInspectEquipId = id || null;
   if (id) renderInspectForm(id);
+}
+
+function saveInspectorName(val) {
+  const cfg = loadDriveConfig();
+  cfg.inspectorName = val;
+  localStorage.setItem('ss_drive_cfg', JSON.stringify(cfg));
+}
+
+function saveInspectorCert(val) {
+  const cfg = loadDriveConfig();
+  cfg.inspectorCert = val;
+  localStorage.setItem('ss_drive_cfg', JSON.stringify(cfg));
+}
+
+// Withdrawal criteria state: array of 10 booleans
+window._inspWithdrawal = new Array(10).fill(false);
+
+function toggleWithdrawal(idx, btn) {
+  window._inspWithdrawal[idx] = !window._inspWithdrawal[idx];
+  const active = window._inspWithdrawal[idx];
+  btn.classList.toggle('sel-fail', active);
+  const row = document.getElementById('wdr-row-' + idx);
+  if (row) row.style.background = active ? 'rgba(248,113,113,.08)' : '';
+}
+
+function showAddEquipFromInspection() {
+  window._returnToInspectAfterEquipAdd = true;
+  showModal('add-equip');
 }
 
 function setCheck(rowId, label, val) {
@@ -3692,7 +3760,7 @@ function lightboxNav(dir) {
   lb.querySelector('#photo-lightbox-caption').textContent = (pool[lb._currentIdx].label||'Foto') + ` (${lb._currentIdx+1}/${pool.length})`;
 }
 
-function saveInspection() {
+function saveInspection(generatePdf = false) {
   const inspector = document.getElementById('insp-inspector')?.value.trim();
   const date = document.getElementById('insp-date')?.value;
   const note = document.getElementById('insp-note')?.value.trim();
@@ -3706,13 +3774,16 @@ function saveInspection() {
   const unchecked = Object.values(inspCheckState).filter(v => v === null).length;
   if (unchecked > 0 && !confirm(`${unchecked} punct(e) de verificare nebifate. Continui?`)) return;
 
+  const certNr = document.getElementById('insp-cert-nr')?.value.trim();
   const ins = {
     id: 'INS-' + Date.now().toString(36).toUpperCase(),
     equipId,
     date,
     inspector,
+    certNr,
     verdict: window._inspVerdict,
     checks: { ...inspCheckState },
+    withdrawal: [...(window._inspWithdrawal || [])],
     note,
     photos: window._inspPhotos ? [...window._inspPhotos] : []
   };
@@ -3730,6 +3801,7 @@ function saveInspection() {
   saveDB();
   toast('✅ Inspecție salvată! (' + (ins.photos.length) + ' foto)', 'success');
   driveAutoUploadAfterInspection(ins);
+  if (generatePdf) { setTimeout(() => generateInspectionPDF(ins, false), 300); }
   showDetail(equipId);
 }
 
@@ -4158,11 +4230,15 @@ function equipFormHTML(eq, prefillSerial) {
         <input type="text" id="f-model" placeholder="Ex: Corax, Mega Jul, Armour" value="${v('model')}">
       </div>
       <div class="form-group">
+        <label class="form-label">Lot / Batch</label>
+        <input type="text" id="f-lot" placeholder="Ex: LOT-2024-A, 2023-12" value="${v('lot')}">
+      </div>
+      <div class="form-group">
         <label class="form-label">Normă EN</label>
         <input type="text" id="f-norm" placeholder="Ex: EN 361, EN 892" value="${v('norm')}">
       </div>
       <div class="form-group">
-        <label class="form-label">Data cumpărare</label>
+        <label class="form-label">Data primei utilizări</label>
         <input type="date" id="f-purchase" value="${v('purchaseDate')}">
       </div>
       <div class="form-group">
@@ -4267,8 +4343,15 @@ function saveEquip(existingId) {
   } else {
     const eq = { id: genId(), ...getFormData(), status: document.getElementById('f-status')?.value || 'ok' };
     db.equipment.push(eq);
-    saveDB(); closeModal(); showDetail(eq.id);
+    saveDB(); closeModal();
     toast('Echipament adăugat: ' + eq.name, 'success');
+    if (window._returnToInspectAfterEquipAdd) {
+      window._returnToInspectAfterEquipAdd = false;
+      renderInspectForm(eq.id);
+      showPage('inspect-new');
+    } else {
+      showDetail(eq.id);
+    }
   }
 }
 
@@ -4279,6 +4362,7 @@ function getFormData() {
     serial: document.getElementById('f-serial')?.value.trim(),
     manufacturer: document.getElementById('f-manufacturer')?.value.trim(),
     model: document.getElementById('f-model')?.value.trim(),
+    lot: document.getElementById('f-lot')?.value.trim(),
     norm: document.getElementById('f-norm')?.value.trim(),
     purchaseDate: document.getElementById('f-purchase')?.value,
     manufactureDate: document.getElementById('f-manufacture')?.value,
@@ -4464,6 +4548,10 @@ function catalogProductFormHTML(existingJson) {
       <div class="form-group">
         <label class="form-label">Tip echipament <span class="form-required">*</span></label>
         <select id="cp-type">${typeOpts}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lot / Batch</label>
+        <input type="text" id="f-lot" placeholder="Ex: LOT-2024-A, 2023-12" value="${v('lot')}">
       </div>
       <div class="form-group">
         <label class="form-label">Normă EN</label>
@@ -5003,6 +5091,490 @@ async function driveUploadJSON() {
   const json = JSON.stringify(db, null, 2);
   const id = await uploadToDrive(filename, 'application/json', json, false);
   if (id) toast(`☁ Backup JSON salvat in Drive!`, 'success');
+}
+
+
+// ═══════════════════════════════════════════════════════
+// GENERATE INSPECTION PDF — SSH-PPE-CHK-02 (RO/DE/EN)
+// ═══════════════════════════════════════════════════════
+
+async function generateInspectionPDF(ins, returnBase64 = false) {
+  const { jsPDF } = window.jspdf;
+  const eq = db.equipment.find(e => e.id === ins.equipId) || {};
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const W = 210, M = 12;
+  const cw = W - M * 2; // content width
+  let y = 0;
+
+  // ── Colors ──────────────────────────────────────────
+  const NAVY   = [15, 30, 56];
+  const ORANGE = [240, 90, 26];
+  const WHITE  = [255, 255, 255];
+  const LGRAY  = [245, 246, 248];
+  const MGRAY  = [200, 205, 215];
+  const DGRAY  = [80, 90, 105];
+  const GREEN  = [34, 170, 100];
+  const RED    = [220, 50, 50];
+  const YELLOW = [200, 150, 0];
+
+  // ── Helpers ──────────────────────────────────────────
+  function setFont(size, style = 'normal', color = [20, 20, 30]) {
+    doc.setFont('helvetica', style);
+    doc.setFontSize(size);
+    doc.setTextColor(...color);
+  }
+  function fillRect(x, ry, w, h, color) {
+    doc.setFillColor(...color);
+    doc.rect(x, ry, w, h, 'F');
+  }
+  function drawRect(x, ry, w, h, color, lw = 0.3) {
+    doc.setDrawColor(...color);
+    doc.setLineWidth(lw);
+    doc.rect(x, ry, w, h, 'S');
+  }
+  function txt(text, x, ty, opts = {}) {
+    doc.text(String(text || ''), x, ty, opts);
+  }
+  function checkBox(x, ty, checked, color = NAVY) {
+    doc.setDrawColor(...MGRAY);
+    doc.setLineWidth(0.3);
+    doc.rect(x, ty - 3, 4, 4, 'S');
+    if (checked) {
+      doc.setDrawColor(...color);
+      doc.setLineWidth(0.8);
+      doc.line(x + 0.7, ty - 0.8, x + 1.8, ty + 0.2);
+      doc.line(x + 1.8, ty + 0.2, x + 3.3, ty - 2.2);
+    }
+  }
+  function labelVal(label, val, x, ty, lw = 30) {
+    setFont(7, 'bold', DGRAY);
+    txt(label, x, ty);
+    setFont(8, 'normal', [20, 20, 30]);
+    txt(String(val || '—'), x + lw, ty);
+  }
+  function triLabel(lbl1, lbl2, lbl3, x, ty, color = DGRAY) {
+    setFont(5.5, 'normal', color);
+    txt(lbl1, x, ty);
+    txt(lbl2, x, ty + 3.2);
+    txt(lbl3, x, ty + 6.4);
+  }
+  function sectionHeader(title, sub1, sub2, sy) {
+    fillRect(M, sy, cw, 7, NAVY);
+    setFont(9, 'bold', WHITE);
+    txt(title, M + 3, sy + 5);
+    if (sub1) {
+      setFont(7, 'italic', [180, 200, 220]);
+      txt(sub1, M + 3 + doc.getTextWidth(title) + 2, sy + 4.5);
+    }
+    if (sub2) {
+      setFont(7, 'italic', [180, 200, 220]);
+      txt(sub2, M + 3, sy + 6.2);
+    }
+    return sy + 9;
+  }
+  function needsPage(needed) {
+    if (y + needed > 278) {
+      doc.addPage();
+      y = 15;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // HEADER
+  // ══════════════════════════════════════════════════════
+  fillRect(0, 0, W, 28, NAVY);
+
+  // Shield icon (simplified polygon)
+  doc.setFillColor(...ORANGE);
+  doc.triangle(M + 1, 5, M + 10, 5, M + 5.5, 22, 'F');
+  doc.setFillColor(...WHITE);
+  doc.setFontSize(9);
+  doc.setTextColor(...WHITE);
+
+  // Logo text
+  setFont(16, 'bold', WHITE);
+  txt('SicherShield', M + 13, 14);
+  setFont(7.5, 'normal', [180, 200, 220]);
+  txt('SAFETY · TRAINING · COMPLIANCE', M + 13, 19.5);
+
+  // Form ref right side
+  setFont(6.5, 'normal', [180, 200, 220]);
+  txt('FORMULAR: SSH-PPE-CHK-02  ·  REV: 2.0', W - M, 10, { align: 'right' });
+  txt('AUSGABEDATUM / ISSUE DATE: 01.01.2026', W - M, 14.5, { align: 'right' });
+
+  // Title block
+  fillRect(M, 21, cw, 10, ORANGE);
+  setFont(11, 'bold', WHITE);
+  txt('PSA-PRÜFPROTOKOLL  /  RAPORT DE INSPECTIE PSA  /  PPE INSPECTION RECORD', M + 3, 27.5);
+  setFont(7, 'normal', WHITE);
+  txt('Persönliche Schutzausrüstung  ·  Echipament Individual de Protectie  ·  Personal Protective Equipment  |  EN 365 · DGUV R 112-198/199', M + 3, 31.8);
+
+  y = 36;
+
+  // ══════════════════════════════════════════════════════
+  // SECTION 1 — IDENTIFICARE ECHIPAMENT
+  // ══════════════════════════════════════════════════════
+  y = sectionHeader('1  IDENTIFIZIERUNG / IDENTIFICARE / EQUIPMENT IDENTIFICATION', null, null, y);
+
+  // Row 1: Typ | Modell | Hersteller
+  const col3 = cw / 3;
+  const cells1 = [
+    { ro: 'TIP ECHIPAMENT', de: 'Gerätetyp', en: 'Equipment type', val: eq.type || '' },
+    { ro: 'MODEL', de: 'Modell', en: 'Model', val: (eq.manufacturer || '') + ' ' + (eq.model || '') },
+    { ro: 'PRODUCATOR', de: 'Hersteller', en: 'Manufacturer', val: eq.manufacturer || '' },
+  ];
+  cells1.forEach((c, i) => {
+    const cx = M + i * col3;
+    fillRect(cx, y, col3 - 0.5, 14, i % 2 === 0 ? LGRAY : WHITE);
+    drawRect(cx, y, col3 - 0.5, 14, MGRAY);
+    triLabel(c.ro, c.de, c.en, cx + 2, y + 4, DGRAY);
+    setFont(8.5, 'bold', [20, 20, 30]);
+    txt(c.val, cx + 2, y + 12);
+  });
+  y += 15;
+
+  // Row 2: Serie | Data fabricatie | Data primei utilizari
+  const cells2 = [
+    { ro: 'NR. SERIE / S/N', de: 'Seriennummer', en: 'Serial / inventory no.', val: eq.serial || '' },
+    { ro: 'DATA FABRICATIEI', de: 'Herstellungsdatum', en: 'Manufacture date', val: eq.manufactureDate ? formatDate(eq.manufactureDate) : '—' },
+    { ro: 'DATA PRIMEI UTILIZARI', de: 'Erstnutzungsdatum', en: 'First use date', val: eq.purchaseDate ? formatDate(eq.purchaseDate) : '—' },
+  ];
+  cells2.forEach((c, i) => {
+    const cx = M + i * col3;
+    fillRect(cx, y, col3 - 0.5, 14, i % 2 === 0 ? LGRAY : WHITE);
+    drawRect(cx, y, col3 - 0.5, 14, MGRAY);
+    triLabel(c.ro, c.de, c.en, cx + 2, y + 4, DGRAY);
+    setFont(8.5, 'bold', [20, 20, 30]);
+    txt(c.val, cx + 2, y + 12);
+  });
+  y += 15;
+
+  // Row 3: Durata viata | Norma | Lot | Utilizator | Locatie
+  const col5w = cw / 5;
+  const cells3 = [
+    { ro: 'DURATA VIATA', de: 'Max. Nutzungsdauer', en: 'Max. lifespan', val: (eq.lifespan || '10') + ' ani/years' },
+    { ro: 'NORMA EN', de: 'Angewandte Norm', en: 'Applicable standard', val: eq.norm || '' },
+    { ro: 'LOT / BATCH', de: 'Charge', en: 'Batch no.', val: eq.lot || '' },
+    { ro: 'UTILIZATOR', de: 'Zugeordneter Nutzer', en: 'Assigned user', val: eq.owner || '' },
+    { ro: 'LOCATIE', de: 'Lagerort', en: 'Storage location', val: eq.location || '' },
+  ];
+  cells3.forEach((c, i) => {
+    const cx = M + i * col5w;
+    fillRect(cx, y, col5w - 0.5, 14, i % 2 === 0 ? LGRAY : WHITE);
+    drawRect(cx, y, col5w - 0.5, 14, MGRAY);
+    triLabel(c.ro, c.de, c.en, cx + 1.5, y + 4, DGRAY);
+    setFont(7.5, 'bold', [20, 20, 30]);
+    const maxW = col5w - 4;
+    const lines = doc.splitTextToSize(c.val, maxW);
+    txt(lines[0] || '', cx + 1.5, y + 12);
+  });
+  y += 16;
+
+  // ══════════════════════════════════════════════════════
+  // SECTION 2 — VERIFICARE COMPONENTE
+  // ══════════════════════════════════════════════════════
+  needsPage(80);
+  y = sectionHeader('2  PRÜFUNG / VERIFICARE COMPONENTE / COMPONENT INSPECTION', null, null, y);
+
+  // Instruction line
+  setFont(6.5, 'italic', DGRAY);
+  txt('OK = fara defecte / ohne Mängel / no defects  ·  NOK = defect constatat / Mängel / defect found  ·  (!) = observatie / Bemerkung / note', M, y + 3.5);
+  y += 7;
+
+  // Table header
+  const colW = { comp: 48, crit: 82, ok: 12, nok: 12, note: cw - 48 - 82 - 12 - 12 };
+  let cx2 = M;
+  fillRect(M, y, cw, 7, NAVY);
+  setFont(6.5, 'bold', WHITE);
+  const headers = [
+    { t: 'COMPONENTA / Komponente / Component', w: colW.comp },
+    { t: 'CRITERIU / Prüfkriterium / Inspection criterion', w: colW.crit },
+    { t: 'OK', w: colW.ok },
+    { t: 'NOK', w: colW.nok },
+    { t: 'OBS / Bem / Note', w: colW.note },
+  ];
+  headers.forEach(h => {
+    txt(h.t, cx2 + 1.5, y + 4.8);
+    cx2 += h.w;
+  });
+  y += 8;
+
+  // Build check rows from inspection data
+  const checkItems = ins.checks || {};
+  const checkKeys = Object.keys(checkItems);
+
+  // Group by component type based on equipment type
+  const COMP_MAP = {
+    'Ham': 'GURT (EN 361) / Ham',
+    'Carabiniera': 'VERBINDUNGSELEMENTE (EN 362) / Carabiniera',
+    'Coarda statica': 'SEIL (EN 1891) / Coarda statica',
+    'Coarda dinamica': 'SEIL (EN 892) / Coarda dinamica',
+    'Casca': 'HELM (EN 397/12492) / Casca',
+    'Longa pozitionare': 'VERBINDUNGSMITTEL (EN 354/358) / Longa',
+    'Longa Y / Amortizor': 'VERBINDUNGSMITTEL + FALLDÄMPFER (EN 354/355) / Longa Y',
+    'Dispozitiv anticadere': 'MITLAUFENDES AUFFANGGERÄT (EN 360) / Anticadere',
+    'Scripete': 'SEILROLLE (EN 12278) / Scripete',
+    'Bucla / Anel': 'BANDSCHLINGE (EN 566) / Bucla',
+  };
+  const compName = COMP_MAP[eq.type] || ('ECHIPAMENT / Ausrüstung / Equipment (' + (eq.type || '') + ')');
+
+  let rowBg = true;
+  checkKeys.forEach((check, idx) => {
+    needsPage(9);
+    const val = checkItems[check];
+    const isOk = val === 'ok';
+    const isNok = val === 'fail' || val === 'warn';
+    const bg = rowBg ? LGRAY : WHITE;
+    rowBg = !rowBg;
+
+    fillRect(M, y, cw, 8, bg);
+    drawRect(M, y, cw, 8, MGRAY);
+
+    // Component name (only first row)
+    setFont(6.5, idx === 0 ? 'bold' : 'normal', idx === 0 ? NAVY : [150, 155, 165]);
+    const compText = idx === 0 ? compName : '';
+    const compLines = doc.splitTextToSize(compText, colW.comp - 3);
+    txt(compLines[0] || '', M + 1.5, y + 5.2);
+
+    // Criterion text
+    setFont(7, 'normal', [25, 25, 35]);
+    const critLines = doc.splitTextToSize(check, colW.crit - 3);
+    txt(critLines[0] || '', M + colW.comp + 1.5, y + 5.2);
+    if (critLines[1]) {
+      setFont(6, 'normal', DGRAY);
+      txt(critLines[1], M + colW.comp + 1.5, y + 8.5);
+    }
+
+    // OK / NOK checkboxes
+    checkBox(M + colW.comp + colW.crit + 3.5, y + 5.2, isOk, GREEN);
+    checkBox(M + colW.comp + colW.crit + colW.ok + 3.5, y + 5.2, isNok, RED);
+
+    // Status note
+    if (val === 'warn') {
+      setFont(6, 'bold', YELLOW);
+      txt('ATENTIE', M + colW.comp + colW.crit + colW.ok + colW.nok + 1.5, y + 5.2);
+    } else if (val === 'fail') {
+      setFont(6, 'bold', RED);
+      txt('RESPINS', M + colW.comp + colW.crit + colW.ok + colW.nok + 1.5, y + 5.2);
+    }
+
+    // Vertical lines
+    doc.setDrawColor(...MGRAY);
+    doc.setLineWidth(0.2);
+    let lx = M + colW.comp; doc.line(lx, y, lx, y + 8);
+    lx += colW.crit; doc.line(lx, y, lx, y + 8);
+    lx += colW.ok; doc.line(lx, y, lx, y + 8);
+    lx += colW.nok; doc.line(lx, y, lx, y + 8);
+
+    y += 8;
+  });
+
+  if (checkKeys.length === 0) {
+    fillRect(M, y, cw, 10, LGRAY);
+    drawRect(M, y, cw, 10, MGRAY);
+    setFont(8, 'italic', DGRAY);
+    txt('Niciun criteriu verificat / Keine Prüfkriterien / No inspection criteria recorded', M + 3, y + 6.5);
+    y += 11;
+  }
+
+  y += 3;
+
+  // ══════════════════════════════════════════════════════
+  // SECTION 3 — CRITERII OBLIGATORII DE RETRAGERE
+  // ══════════════════════════════════════════════════════
+  needsPage(75);
+  y = sectionHeader('3  PFLICHTKRITERIEN / CRITERII RETRAGERE / MANDATORY WITHDRAWAL CRITERIA', null, null, y);
+
+  const withdrawalCriteria = [
+    'Echipamentul a oprit o cadere (chiar si fara defecte vizibile) / Equipment has arrested a fall',
+    'Amortizor de soc declansat (banda interioara vizibila, capac rupt) / Energy absorber deployed',
+    'Benzi cu taieturi, fire rupte, decolorare severa sau abraziune grea / Webbing with cuts, broken threads, severe discoloration',
+    'Cusaturi rupte, fire proeminente sau zone slabite / Torn stitching, protruding threads or weakened areas',
+    'Conectori/carabiniere cu deformari, fisuri sau coroziune severa / Connectors with deformations, cracks or severe corrosion',
+    'Mecanismul de blocare nu se inchide complet sau este blocat / Locking mechanism does not close completely',
+    'Marcajele producatorului absente sau ilizibile / Manufacturer marking absent or illegible',
+    'Echipament expus la chimicale, foc sau temperaturi peste 60°C / Equipment exposed to chemicals, fire or >60°C',
+    'Durata de viata maxima depasita / Maximum lifespan exceeded',
+    'Defect functional la inspectie / Functional defect during inspection',
+  ];
+
+  setFont(6.5, 'bold', RED);
+  txt('DACA UN CRITERIU ESTE INDEPLINIT — RETRAGERE IMEDIATA DIN UZ  /  If any criterion applies — withdraw from use immediately', M + 1, y + 3);
+  y += 6;
+
+  withdrawalCriteria.forEach((crit, i) => {
+    needsPage(8);
+    const wdrChecked = ins.withdrawal && ins.withdrawal[i];
+    fillRect(M, y, cw, 7.5, wdrChecked ? [255,245,245] : (i % 2 === 0 ? LGRAY : WHITE));
+    drawRect(M, y, cw, 7.5, wdrChecked ? RED : MGRAY);
+    checkBox(M + 2, y + 5.2, wdrChecked, RED);
+    setFont(7, 'normal', [25, 25, 35]);
+    const lines = doc.splitTextToSize(crit, cw - 12);
+    txt(lines[0], M + 8, y + 5.2);
+    y += 7.5;
+  });
+  y += 4;
+
+  // ══════════════════════════════════════════════════════
+  // SECTION 4 — VERDICT FINAL
+  // ══════════════════════════════════════════════════════
+  needsPage(35);
+  y = sectionHeader('4  ENDGÜLTIGES URTEIL / VERDICT FINAL / FINAL VERDICT', null, null, y);
+
+  const verdictW = cw / 3;
+  const verdicts = [
+    { key: 'ok',   ro: 'GEBRAUCHSTAUGLICH', de: 'ADECVAT UTILIZARII', en: 'FIT FOR USE',        icon: '✓', color: GREEN },
+    { key: 'warn', ro: 'REPARABEL',          de: 'NECESITA REMEDIERE', en: 'REPAIRABLE',          icon: '⚠', color: YELLOW },
+    { key: 'fail', ro: 'AUSSORTIERT',        de: 'RETRAS DIN UZ',      en: 'WITHDRAWN FROM USE', icon: '✕', color: RED },
+  ];
+
+  verdicts.forEach((v, i) => {
+    const vx = M + i * verdictW;
+    const isActive = ins.verdict === v.key;
+    fillRect(vx, y, verdictW - 1, 18, isActive ? v.color : LGRAY);
+    drawRect(vx, y, verdictW - 1, 18, isActive ? v.color : MGRAY, isActive ? 1.2 : 0.3);
+    setFont(16, 'bold', isActive ? WHITE : MGRAY);
+    txt(v.icon, vx + verdictW / 2 - 4, y + 10, { align: 'center' });
+    setFont(7, 'bold', isActive ? WHITE : DGRAY);
+    txt(v.ro, vx + verdictW / 2, y + 13.5, { align: 'center' });
+    setFont(6, 'normal', isActive ? [220, 235, 255] : [160, 165, 175]);
+    txt(v.de + '  /  ' + v.en, vx + verdictW / 2, y + 17, { align: 'center' });
+  });
+  y += 20;
+
+  // Observations box
+  needsPage(28);
+  fillRect(M, y, cw, 5, NAVY);
+  setFont(7.5, 'bold', WHITE);
+  txt('OBSERVATII / BEMERKUNGEN / OBSERVATIONS  &  MASURI CORECTIVE / CORRECTIVE ACTIONS', M + 2, y + 3.5);
+  y += 6;
+  fillRect(M, y, cw, 20, LGRAY);
+  drawRect(M, y, cw, 20, MGRAY);
+  if (ins.note) {
+    setFont(8, 'normal', [25, 25, 35]);
+    const noteLines = doc.splitTextToSize(ins.note, cw - 6);
+    noteLines.slice(0, 4).forEach((l, i) => txt(l, M + 3, y + 6 + i * 4.5));
+  }
+  y += 22;
+
+  // ══════════════════════════════════════════════════════
+  // SECTION 5 — INSPECTOR & SEMNATURA
+  // ══════════════════════════════════════════════════════
+  needsPage(40);
+  y = sectionHeader('5  PRÜFDATUM & UNTERSCHRIFT / DATA SI SEMNATURA / INSPECTION DATE & SIGNATURE', null, null, y);
+
+  // Row: data inspectie | data eticheta | urmatoarea
+  const col3d = cw / 3;
+  const dateFields = [
+    { ro: 'DATA INSPECTIEI', de: 'Prüfdatum', en: 'Inspection date', val: ins.date ? formatDate(ins.date) : '—' },
+    { ro: 'COD DATA ETICHETA', de: 'Etikett-Datumscode', en: 'Label date code', val: ins.date ? (new Date(ins.date).getMonth() + 1).toString().padStart(2,'0') + ' · ' + new Date(ins.date).getFullYear() : '—' },
+    { ro: 'URMATOAREA INSPECTIE', de: 'Nächstes Prüfdatum', en: 'Next inspection date', val: (() => { if (!ins.date) return '—'; const d = new Date(ins.date); d.setFullYear(d.getFullYear() + 1); return formatDate(d.toISOString().slice(0,10)); })() },
+  ];
+  dateFields.forEach((c, i) => {
+    const dcx = M + i * col3d;
+    fillRect(dcx, y, col3d - 0.5, 14, i % 2 === 0 ? LGRAY : WHITE);
+    drawRect(dcx, y, col3d - 0.5, 14, MGRAY);
+    triLabel(c.ro, c.de, c.en, dcx + 2, y + 4, DGRAY);
+    setFont(9, 'bold', [20, 20, 30]);
+    txt(c.val, dcx + 2, y + 12);
+  });
+  y += 15;
+
+  // Row: inspector | certificare | semnatura
+  const sigFields = [
+    { ro: 'INSPECTOR (NUME)', de: 'Prüfer (Name)', en: 'Inspector (name)', val: ins.inspector || '' },
+    { ro: 'NR. CERTIFICARE', de: 'Zertifizierung Nr.', en: 'Certification no.', val: ins.certNr || '' },
+    { ro: 'SEMNATURA', de: 'Unterschrift', en: 'Signature', val: '' },
+  ];
+  sigFields.forEach((c, i) => {
+    const scx = M + i * col3d;
+    fillRect(scx, y, col3d - 0.5, 16, i % 2 === 0 ? LGRAY : WHITE);
+    drawRect(scx, y, col3d - 0.5, 16, MGRAY);
+    triLabel(c.ro, c.de, c.en, scx + 2, y + 4, DGRAY);
+    if (c.val) {
+      setFont(9, 'bold', NAVY);
+      txt(c.val, scx + 2, y + 13);
+    } else {
+      // Signature line
+      doc.setDrawColor(...MGRAY);
+      doc.setLineWidth(0.4);
+      doc.line(scx + 4, y + 13, scx + col3d - 6, y + 13);
+    }
+  });
+  y += 18;
+
+  // ══════════════════════════════════════════════════════
+  // NOTE / HINWEIS
+  // ══════════════════════════════════════════════════════
+  needsPage(22);
+  fillRect(M, y, cw, 18, [248, 248, 250]);
+  drawRect(M, y, cw, 18, MGRAY);
+  doc.setDrawColor(...ORANGE);
+  doc.setLineWidth(1.2);
+  doc.line(M, y, M, y + 18);
+  setFont(6.5, 'bold', ORANGE);
+  txt('HINWEIS / NOTA / NOTE', M + 3, y + 5);
+  setFont(6, 'normal', DGRAY);
+  const noteText = 'DE: Das Datumsetikett (Ø 10mm) mit dem nächsten Prüfdatum wird nur bei Urteil GEBRAUCHSTAUGLICH angebracht. AUSSORTIERTE Ausrüstung erhält sofort das rote SCOS-Etikett und wird isoliert.';
+  const noteText2 = 'RO: Eticheta de data se aplica doar la verdict ADECVAT UTILIZARII. Echipamentul RETRAS primeste imediat eticheta rosie SCOS DIN UZ si se izoleaza.  |  EN: Date label applied only if FIT FOR USE. WITHDRAWN equipment receives red OUT OF SERVICE label immediately.';
+  const nLines1 = doc.splitTextToSize(noteText, cw - 6);
+  const nLines2 = doc.splitTextToSize(noteText2, cw - 6);
+  txt(nLines1[0] || '', M + 3, y + 9.5);
+  txt(nLines2[0] || '', M + 3, y + 13.5);
+  if (nLines2[1]) txt(nLines2[1], M + 3, y + 16.5);
+  y += 20;
+
+  // ══════════════════════════════════════════════════════
+  // FOOTER
+  // ══════════════════════════════════════════════════════
+  needsPage(14);
+  fillRect(0, y + 2, W, 10, NAVY);
+  setFont(6.5, 'normal', [180, 200, 220]);
+  txt('SicherShield SRL  ·  CUI RO12345678  ·  J40/12345/2024  ·  www.sichershield.ro', W / 2, y + 8.5, { align: 'center' });
+  setFont(6, 'normal', [120, 140, 160]);
+  txt('Aufbewahrung 10 Jahre · Pastrare 10 ani · Retain 10 years (EN 365)', W / 2, y + 13, { align: 'center' });
+  setFont(6, 'normal', [120, 140, 160]);
+  txt('ID: ' + ins.id + '  ·  ' + new Date().toLocaleString('ro-RO'), W - M, y + 13, { align: 'right' });
+
+  // ══════════════════════════════════════════════════════
+  // PHOTOS PAGE (if any)
+  // ══════════════════════════════════════════════════════
+  if (ins.photos && ins.photos.length > 0) {
+    doc.addPage();
+    fillRect(0, 0, W, 14, NAVY);
+    setFont(10, 'bold', WHITE);
+    txt('FOTOGRAFII DEFECTE / FOTOS / DEFECT PHOTOS  —  ' + ins.id, M, 9);
+    let py = 18;
+    let px = M;
+    const phW = (cw - 6) / 2;
+    const phH = 65;
+    ins.photos.forEach((photo, i) => {
+      if (py + phH > 278) { doc.addPage(); py = 15; px = M; }
+      try {
+        const fmt = photo.data.includes('data:image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(photo.data, fmt, px, py, phW, phH, undefined, 'MEDIUM');
+        doc.setDrawColor(...MGRAY);
+        doc.setLineWidth(0.3);
+        doc.rect(px, py, phW, phH, 'S');
+        setFont(6.5, 'italic', DGRAY);
+        txt((photo.label || 'Foto ' + (i + 1)).substring(0, 50), px + 1, py + phH + 4);
+      } catch(e) { /* skip bad image */ }
+      if (i % 2 === 0) { px = M + phW + 6; }
+      else { px = M; py += phH + 10; }
+    });
+  }
+
+  // ── Return or download ──────────────────────────────
+  if (returnBase64) {
+    const b64 = doc.output('datauristring').split(',')[1];
+    await driveUploadPdfBlob(b64, ins.id, ins.date);
+    return b64;
+  } else {
+    const fname = `PPE_${ins.id}_${ins.date}_${(eq.name||'').replace(/\s+/g,'_')}.pdf`;
+    doc.save(fname);
+    toast('📄 PDF descărcat: ' + fname, 'success');
+  }
 }
 
 async function driveUploadPdfBlob(pdfBase64, insId, date) {
