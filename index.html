@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SicherShield">
+<meta name="theme-color" content="#1a4080">
+<link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22SicherShield%22%2C%22short_name%22%3A%22SicherShield%22%2C%22description%22%3A%22Gestiune%20Echipamente%20Alpinism%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%2307090f%22%2C%22theme_color%22%3A%22%231a4080%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520viewBox%253D%270%25200%2520200%2520220%27%2520xmlns%253D%27http%253A%252F%252Fwww.w3.org%252F2000%252Fsvg%27%253E%253Cpath%2520d%253D%27M100%25204%2520L196%252044%2520L196%2520120%2520C196%2520168%2520100%2520216%2520100%2520216%2520C100%2520216%25204%2520168%25204%2520120%2520L4%252044%2520Z%27%2520fill%253D%27%230f1e38%27%252F%253E%253C%252Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
 <title>SicherShield — Gestiune Echipamente Alpinism</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -16,7 +22,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()" onerror="window._gapiLoadFailed=true"></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
+<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
+<script>
+  // ── HARDCODAT: Client ID Google ──
+  const DRIVE_CLIENT_ID = '826960469113-sh9m91nlhcd3h42321c10a2mn04r1juv.apps.googleusercontent.com';
+</script>
 
 <style>
 :root {
@@ -1608,6 +1619,29 @@ textarea { resize: vertical; min-height: 80px; }
 </head>
 <body>
 
+<!-- PWA INSTALL PROMPT -->
+<div id="pwa-install-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:20px">
+  <div style="background:linear-gradient(135deg,#1e3a6e,#1a3468);border:1px solid rgba(240,90,26,.5);border-radius:16px;padding:32px 28px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+    <div style="font-size:56px;margin-bottom:12px">🛡️</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:#fff;letter-spacing:1px;margin-bottom:6px">Sicher<span style="color:#ff7a35">Shield</span></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.6);letter-spacing:3px;text-transform:uppercase;margin-bottom:20px">Safety · Training · Compliance</div>
+    <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:16px;margin-bottom:24px;font-size:13px;color:rgba(255,255,255,.8);line-height:1.7">
+      Instalează aplicația pe ecranul principal pentru acces rapid, fără browser.
+    </div>
+    <div id="pwa-ios-hint" style="display:none;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);border-radius:8px;padding:12px;margin-bottom:20px;font-size:12px;color:rgba(255,255,255,.75);line-height:1.8">
+      Pe <strong style="color:#60a5fa">iPhone/iPad</strong>: apasă <strong>⎋ Share</strong> → <strong>Adaugă pe ecranul principal</strong>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button id="pwa-install-btn" onclick="pwaInstall()" style="display:none;background:#f05a1a;color:#fff;border:none;border-radius:8px;padding:14px 20px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;width:100%">
+        ＋ Instalează pe ecranul principal
+      </button>
+      <button onclick="pwaDismiss()" style="background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:11px 20px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer;width:100%">
+        Mai târziu
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- MOBILE SEARCH OVERLAY -->
 <div id="mobile-search-overlay">
   <input type="text" id="mobile-search-input" placeholder="Caută echipament, serial…"
@@ -1646,6 +1680,7 @@ textarea { resize: vertical; min-height: 80px; }
   <div class="topbar-right">
     <button class="btn btn-ghost btn-sm" onclick="openMobileSearch()"
       style="display:none" id="mobile-search-btn" title="Caută">🔍</button>
+
   </div>
 </div>
 
@@ -1701,7 +1736,6 @@ textarea { resize: vertical; min-height: 80px; }
         </div>
         <div class="d-flex">
           <button class="btn btn-sec btn-sm" onclick="showPage('scan')">📷 Scanează</button>
-          <button class="btn btn-primary btn-sm" onclick="showModal('add-equip')">＋ Echipament</button>
         </div>
       </div>
 
@@ -1731,7 +1765,7 @@ textarea { resize: vertical; min-height: 80px; }
           <div class="page-title">Echipamente</div>
           <div class="page-sub">Baza de date echipamente înregistrate</div>
         </div>
-        <button class="btn btn-primary" onclick="showModal('add-equip')">＋ Echipament nou</button>
+  
       </div>
 
       <div class="filter-bar">
@@ -1991,30 +2025,22 @@ textarea { resize: vertical; min-height: 80px; }
         <div class="card">
           <div class="card-title">🔑 Cont Google</div>
           <div style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:18px">
-            <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:12px">
-              SicherShield folosește <strong>Google Drive API v3</strong> cu autentificare OAuth2.<br>
-              Fișierele se salvează în folderul <code style="background:var(--bg);padding:1px 6px;border-radius:3px;font-family:var(--font-m)">SicherShield/</code> din Drive-ul tău.
+            <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px">
+              SicherShield foloseste <strong>Google Drive API v3</strong>.<br>
+              Fisierele se salveaza in folderul <code style="background:var(--bg);padding:1px 6px;border-radius:3px;font-family:var(--font-m)">SicherShield/</code> din Drive-ul tau.
             </div>
+            <div id="drive-auth-status" style="font-size:13px;color:var(--text3);font-family:var(--font-m);margin-bottom:14px">&#x23F3; Se initializeaza...</div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <div id="drive-auth-status" style="font-size:13px;color:var(--text3);font-family:var(--font-m)">⏳ Se verifică...</div>
-              <button class="btn btn-primary" id="btn-drive-signin" onclick="driveSignIn()" style="display:none">🔑 Conectează Google Drive</button>
-              <button class="btn btn-danger btn-sm" id="btn-drive-signout" onclick="driveSignOut()" style="display:none">Deconectează</button>
+              <button id="btn-drive-signin" onclick="driveSignIn()" style="display:none;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:4px;padding:10px 20px;font-family:Roboto,Arial,sans-serif;font-size:14px;font-weight:500;cursor:pointer;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.15)">
+                <svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Conecteaza cu Google
+              </button>
+              <button class="btn btn-danger btn-sm" id="btn-drive-signout" onclick="driveSignOut()" style="display:none">&#x1F513; Deconecteaza</button>
             </div>
           </div>
-
-          <div class="form-group" style="margin-bottom:14px">
-            <label class="form-label">Client ID Google (OAuth2) <span class="form-required">*</span></label>
-            <input type="text" id="cfg-client-id" placeholder="xxxx.apps.googleusercontent.com" oninput="saveDriveConfig()" />
-            <div style="font-size:11px;color:var(--text3);margin-top:4px">Din Google Cloud Console → APIs &amp; Services → Credentials</div>
-          </div>
-
           <div class="form-group" style="margin-bottom:6px">
-            <label class="form-label">Folder Drive destinație</label>
+            <label class="form-label">Folder Drive destinatie</label>
             <input type="text" id="cfg-folder-name" placeholder="SicherShield" value="SicherShield" oninput="saveDriveConfig()" />
-          </div>
-
-          <div style="margin-top:12px">
-            <button class="btn btn-sec btn-sm" onclick="showDriveSetupGuide()">📖 Ghid pas-cu-pas Client ID</button>
           </div>
         </div>
 
@@ -2371,7 +2397,7 @@ textarea { resize: vertical; min-height: 80px; }
       <button class="btn btn-sec" style="justify-content:flex-start;gap:10px" onclick="closeMobileMenu();showPage('alerts')">⚠️ Alerte<span id="drawer-alert-badge" style="margin-left:6px;background:var(--red);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;display:none"></span></button>
       <button class="btn btn-sec" style="justify-content:flex-start;gap:10px" onclick="closeMobileMenu();showPage('reports')">📄 Rapoarte</button>
       <button class="btn btn-sec" style="justify-content:flex-start;gap:10px" onclick="closeMobileMenu();showPage('drive-settings')">⚙️ Setări Integrări</button>
-      <button class="btn btn-primary" style="justify-content:flex-start;gap:10px;grid-column:1/-1" onclick="closeMobileMenu();showModal('add-equip')">＋ Adaugă echipament</button>
+
     </div>
   </div>
 </div>
@@ -3202,7 +3228,6 @@ function showDetail(id) {
         <div class="equip-hero-meta">
           <div class="meta-item"><div class="meta-key">Producător</div><div class="meta-val">${eq.manufacturer||'—'}</div></div>
           <div class="meta-item"><div class="meta-key">Model</div><div class="meta-val">${eq.model||'—'}</div></div>
-          ${eq.lot ? `<div class="meta-item"><div class="meta-key">Lot / Batch</div><div class="meta-val">${eq.lot}</div></div>` : ''}
           <div class="meta-item"><div class="meta-key">Data cumpărare</div><div class="meta-val">${formatDate(eq.purchaseDate)}</div></div>
           <div class="meta-item"><div class="meta-key">Data fabricație</div><div class="meta-val">${formatDate(eq.manufactureDate)}</div></div>
           <div class="meta-item"><div class="meta-key">Locație</div><div class="meta-val">${eq.location||'—'}</div></div>
@@ -3382,11 +3407,7 @@ function renderInspectForm(equipId) {
             <select id="insp-equip-sel" onchange="changeInspectEquip(this.value)">
               <option value="">— Alege echipamentul —</option>
               ${db.equipment.filter(e=>e.status!=='ret').map(e=>`<option value="${e.id}">${e.name} (${e.serial})</option>`).join('')}
-            </select>
-            <div style="margin-top:10px;padding:12px 14px;background:rgba(240,90,26,.06);border:1px dashed rgba(240,90,26,.35);border-radius:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-              <span style="font-size:12px;color:var(--text3)">Echipamentul nu este în baza de date?</span>
-              <button class="btn btn-primary btn-sm" onclick="showAddEquipFromInspection()" type="button">＋ Adaugă echipament nou</button>
-            </div></div>`
+            </select></div>`
       }
     </div>
 
@@ -3475,13 +3496,6 @@ function changeInspectEquip(id) {
   currentInspectEquipId = id || null;
   if (id) renderInspectForm(id);
 }
-
-function showAddEquipFromInspection() {
-  // Open the add-equip modal; after save, re-render the inspect form with the new equipment selected
-  window._returnToInspectAfterEquipAdd = true;
-  showModal('add-equip');
-}
-
 
 function setCheck(rowId, label, val) {
   inspCheckState[label] = val;
@@ -4144,10 +4158,6 @@ function equipFormHTML(eq, prefillSerial) {
         <input type="text" id="f-model" placeholder="Ex: Corax, Mega Jul, Armour" value="${v('model')}">
       </div>
       <div class="form-group">
-        <label class="form-label">Lot / Batch</label>
-        <input type="text" id="f-lot" placeholder="Ex: LOT-2024-A, 2023-12" value="${v('lot')}">
-      </div>
-      <div class="form-group">
         <label class="form-label">Normă EN</label>
         <input type="text" id="f-norm" placeholder="Ex: EN 361, EN 892" value="${v('norm')}">
       </div>
@@ -4257,15 +4267,8 @@ function saveEquip(existingId) {
   } else {
     const eq = { id: genId(), ...getFormData(), status: document.getElementById('f-status')?.value || 'ok' };
     db.equipment.push(eq);
-    saveDB(); closeModal();
+    saveDB(); closeModal(); showDetail(eq.id);
     toast('Echipament adăugat: ' + eq.name, 'success');
-    if (window._returnToInspectAfterEquipAdd) {
-      window._returnToInspectAfterEquipAdd = false;
-      renderInspectForm(eq.id);
-      showPage('inspect-new');
-    } else {
-      showDetail(eq.id);
-    }
   }
 }
 
@@ -4276,7 +4279,6 @@ function getFormData() {
     serial: document.getElementById('f-serial')?.value.trim(),
     manufacturer: document.getElementById('f-manufacturer')?.value.trim(),
     model: document.getElementById('f-model')?.value.trim(),
-    lot: document.getElementById('f-lot')?.value.trim(),
     norm: document.getElementById('f-norm')?.value.trim(),
     purchaseDate: document.getElementById('f-purchase')?.value,
     manufactureDate: document.getElementById('f-manufacture')?.value,
@@ -4382,7 +4384,7 @@ function showDriveSetupGuide() {
       </div>
       <div style="margin-top:12px">
         <label class="form-label">Client ID (inserează aici)</label>
-        <input type="text" id="modal-client-id" placeholder="xxxx.apps.googleusercontent.com" style="margin-top:6px" oninput="document.getElementById('cfg-client-id').value=this.value;saveDriveConfig()">
+        <input type="text" id="modal-client-id" placeholder="xxxx.apps.googleusercontent.com" style="margin-top:6px" oninput="saveDriveConfig()">
       </div>
     </div>
     <div style="text-align:right;margin-top:16px">
@@ -4726,14 +4728,16 @@ function openNasDSM() {
 }
 
 // ═══════════════════════════════════════════════════════
-// GOOGLE DRIVE INTEGRATION
+// GOOGLE DRIVE INTEGRATION — GIS (Google Identity Services)
 // ═══════════════════════════════════════════════════════
 
 const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
 let _gapiReady = false;
+let _gisReady  = false;
+let _driveToken = null;
 let _driveSignedIn = false;
-let _driveFolderId = null;   // cached root folder ID
-let _driveSubIds = {};       // cached subfolder IDs
+let _driveFolderId = null;
+let _driveSubIds = {};
 
 // ── Config persistence ────────────────────────────────
 function loadDriveConfig() {
@@ -4741,7 +4745,7 @@ function loadDriveConfig() {
 }
 function saveDriveConfig() {
   const cfg = {
-    clientId:       document.getElementById('cfg-client-id')?.value.trim() || '',
+    clientId:       DRIVE_CLIENT_ID,
     folderName:     document.getElementById('cfg-folder-name')?.value.trim() || 'SicherShield',
     autoPdf:        document.getElementById('cfg-auto-pdf')?.checked || false,
     autoCsvInsp:    document.getElementById('cfg-auto-csv-insp')?.checked || false,
@@ -4760,13 +4764,11 @@ function applyDriveConfigToUI() {
   const cfg = loadDriveConfig();
   const s = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
   const c = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
-  s('cfg-client-id',    cfg.clientId || '');
   s('cfg-folder-name',  cfg.folderName || 'SicherShield');
   c('cfg-auto-pdf',     cfg.autoPdf);
   c('cfg-auto-csv-insp',cfg.autoCsvInsp);
   c('cfg-auto-csv-echip',cfg.autoCsvEchip);
   c('cfg-subfolder',    cfg.subfolder !== false);
-  // NAS fields
   s('cfg-nas-url',      cfg.nasUrl || '');
   s('cfg-app-url',      cfg.appUrl || '');
   c('cfg-nas-notify',   cfg.nasNotify);
@@ -4776,54 +4778,97 @@ function applyDriveConfigToUI() {
   updateLogStats();
 }
 
-// ── GAPI init ─────────────────────────────────────────
+// ── GIS init ──────────────────────────────────────────
+let _tokenClient = null;
+
+function gisLoaded() {
+  _gisReady = true;
+  _maybeInitDrive();
+}
+
 function gapiLoaded() {
-  gapi.load('client:auth2', initDriveApi);
-}
-async function initDriveApi() {
-  const cfg = loadDriveConfig();
-  if (!cfg.clientId) {
-    setDriveStatus('no-client');
-    return;
-  }
-  try {
-    await gapi.client.init({
-      clientId: cfg.clientId,
-      scope: DRIVE_SCOPES,
-      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-    });
+  gapi.load('client', async () => {
+    await gapi.client.init({});
+    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
     _gapiReady = true;
-    const auth = gapi.auth2.getAuthInstance();
-    auth.isSignedIn.listen(updateDriveSigninStatus);
-    updateDriveSigninStatus(auth.isSignedIn.get());
-  } catch(e) {
-    setDriveStatus('error', e.message || 'Eroare init GAPI');
-  }
+    _maybeInitDrive();
+  });
 }
-function updateDriveSigninStatus(isSignedIn) {
-  _driveSignedIn = isSignedIn;
-  _driveFolderId = null;
-  _driveSubIds = {};
-  setDriveStatus(isSignedIn ? 'connected' : 'disconnected');
-  // update badge
-  const badge = document.getElementById('drive-status-badge');
-  if (badge) { badge.style.display = isSignedIn ? '' : 'none'; }
-  updateDriveBadge();
-  // update buttons
+
+function _maybeInitDrive() {
+  if (!_gapiReady || !_gisReady) return;
+  _tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: DRIVE_CLIENT_ID,
+    scope: DRIVE_SCOPES,
+    callback: (tokenResponse) => {
+      if (tokenResponse && tokenResponse.access_token) {
+        _driveToken = tokenResponse.access_token;
+        _driveSignedIn = true;
+        _driveFolderId = null;
+        _driveSubIds = {};
+        gapi.client.setToken({ access_token: _driveToken });
+        setDriveStatus('connected');
+        updateDriveUI(true);
+        toast('✅ Conectat la Google Drive!', 'success');
+      }
+    },
+    error_callback: (err) => {
+      if (err.type !== 'popup_closed') {
+        setDriveStatus('error', err.type || 'Eroare autentificare');
+        toast('❌ Eroare Google: ' + (err.type || 'necunoscut'), 'error');
+      }
+    }
+  });
+  setDriveStatus('disconnected');
+  updateDriveUI(false);
+}
+
+function updateDriveUI(signedIn) {
   const btnIn  = document.getElementById('btn-drive-signin');
   const btnOut = document.getElementById('btn-drive-signout');
-  if (btnIn)  btnIn.style.display  = isSignedIn ? 'none' : '';
-  if (btnOut) btnOut.style.display = isSignedIn ? '' : 'none';
+  const badge  = document.getElementById('drive-status-badge');
+  const tabBadge = document.getElementById('tab-gdrive-badge');
+  if (btnIn)  { btnIn.style.display  = signedIn ? 'none' : 'inline-flex'; }
+  if (btnOut) { btnOut.style.display = signedIn ? '' : 'none'; }
+  if (badge)  { badge.style.display  = signedIn ? '' : 'none'; }
+  if (tabBadge) { tabBadge.style.display = signedIn ? '' : 'none'; }
+  updateDriveBadge();
 }
+
+function driveSignIn() {
+  if (!_tokenClient) {
+    toast('Se initializeaza... incearca din nou in 2 secunde.', 'error');
+    setTimeout(() => _maybeInitDrive(), 1500);
+    return;
+  }
+  // Request access token — opens Google popup
+  _tokenClient.requestAccessToken({ prompt: 'select_account' });
+}
+
+function driveSignOut() {
+  if (_driveToken) {
+    google.accounts.oauth2.revoke(_driveToken, () => {
+      _driveToken = null;
+      _driveSignedIn = false;
+      _driveFolderId = null;
+      _driveSubIds = {};
+      gapi.client.setToken(null);
+      setDriveStatus('disconnected');
+      updateDriveUI(false);
+      toast('Deconectat de la Google Drive.', 'info');
+    });
+  }
+}
+
 function setDriveStatus(state, msg) {
   const el = document.getElementById('drive-auth-status');
   const banner = document.getElementById('drive-banner') || document.getElementById('drive-status-banner');
   const map = {
     'connected':    ['✅ Conectat la Google Drive', 'rgba(74,222,128,.1)', 'var(--green)', '1px solid rgba(74,222,128,.25)'],
-    'disconnected': ['🔑 Neconectat — apasă butonul pentru a autoriza accesul', 'rgba(232,80,10,.08)', 'var(--accent)', '1px solid rgba(232,80,10,.2)'],
-    'no-client':    ['⚙️ Introdu Client ID în Setări Cloud pentru a activa Google Drive', 'rgba(96,165,250,.08)', 'var(--blue)', '1px solid rgba(96,165,250,.2)'],
+    'disconnected': ['🔑 Neconectat — apasa butonul pentru a autoriza accesul', 'rgba(232,80,10,.08)', 'var(--accent)', '1px solid rgba(232,80,10,.2)'],
+    'no-client':    ['⚙️ Client ID lipsa', 'rgba(96,165,250,.08)', 'var(--blue)', '1px solid rgba(96,165,250,.2)'],
     'error':        [`❌ Eroare: ${msg}`, 'rgba(248,113,113,.08)', 'var(--red)', '1px solid rgba(248,113,113,.2)'],
-    'uploading':    ['⏫ Se încarcă în Drive…', 'rgba(251,191,36,.08)', 'var(--yellow)', '1px solid rgba(251,191,36,.2)'],
+    'uploading':    ['⏫ Se incarca in Drive…', 'rgba(251,191,36,.08)', 'var(--yellow)', '1px solid rgba(251,191,36,.2)'],
   };
   const [txt, bg, color, border] = map[state] || map['disconnected'];
   if (el) { el.textContent = txt; el.style.color = color; }
@@ -4835,15 +4880,6 @@ function setDriveStatus(state, msg) {
     }
     banner.style.display = (state === 'connected') ? 'none' : 'flex';
   }
-}
-function driveSignIn() {
-  if (!_gapiReady) { toast('GAPI nu e gata — introdu Client ID și reîncarcă pagina.', 'error'); return; }
-  gapi.auth2.getAuthInstance().signIn();
-}
-function driveSignOut() {
-  if (!_gapiReady) return;
-  gapi.auth2.getAuthInstance().signOut();
-  toast('Deconectat de la Google Drive.', 'info');
 }
 
 // ── Folder management ─────────────────────────────────
@@ -4878,21 +4914,19 @@ async function getDestFolderId() {
 
 // ── Upload helpers ────────────────────────────────────
 async function uploadToDrive(fileName, mimeType, content, isBase64) {
-  if (!_driveSignedIn) {
-    toast('Drive neconectat — accesează Setări Cloud.', 'error');
+  if (!_driveSignedIn || !_driveToken) {
+    toast('Drive neconectat — conecteaza-te mai intai.', 'error');
     setDriveStatus('disconnected');
     return null;
   }
   setDriveStatus('uploading');
   try {
     const folderId = await getDestFolderId();
-    // check if file exists → update (PATCH) else create (POST)
     const q = `name='${fileName}' and '${folderId}' in parents and trashed=false`;
     const existing = await gapi.client.drive.files.list({ q, fields:'files(id)', pageSize:1 });
     const existId = existing.result.files[0]?.id || null;
 
     const boundary = '-------sicher_boundary';
-    const ct = isBase64 ? mimeType : mimeType;
     const meta = JSON.stringify({ name: fileName, parents: existId ? undefined : [folderId] });
     let body;
     if (isBase64) {
@@ -4901,7 +4935,7 @@ Content-Type: application/json; charset=UTF-8
 
 ${meta}
 --${boundary}
-Content-Type: ${ct}
+Content-Type: ${mimeType}
 Content-Transfer-Encoding: base64
 
 ${content}
@@ -4912,7 +4946,7 @@ Content-Type: application/json; charset=UTF-8
 
 ${meta}
 --${boundary}
-Content-Type: ${ct}
+Content-Type: ${mimeType}
 
 ${content}
 --${boundary}--`;
@@ -4921,10 +4955,9 @@ ${content}
       ? `https://www.googleapis.com/upload/drive/v3/files/${existId}?uploadType=multipart`
       : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
     const method = existId ? 'PATCH' : 'POST';
-    const token = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
     const resp = await fetch(url, {
       method,
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': `multipart/related; boundary="${boundary}"` },
+      headers: { 'Authorization': 'Bearer ' + _driveToken, 'Content-Type': `multipart/related; boundary="${boundary}"` },
       body
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -4942,7 +4975,7 @@ ${content}
 
 // ── Public upload functions ───────────────────────────
 async function driveUploadCSV(type) {
-  if (!_driveSignedIn) { toast('Conectează-te la Google Drive în Setări Cloud.', 'error'); showPage('drive-settings'); return; }
+  if (!_driveSignedIn) { toast('Conecteaza-te la Google Drive in Setari Cloud.', 'error'); showPage('drive-settings'); return; }
   let csv, filename;
   const d = new Date().toISOString().slice(0,10);
   if (type === 'inspectii') {
@@ -4954,44 +4987,41 @@ async function driveUploadCSV(type) {
     csv = '\uFEFF' + [headers,...rows].map(r=>r.join(',')).join('\n');
     filename = `sicher_inspectii_${d}.csv`;
   } else {
-    const headers = ['ID','Nume','Tip','Serial','Producator','Model','Norma','Data cumparare','Data fabricatie','Durata viata','Localitate','Proprietar','Status','Note'];
-    const rows = db.equipment.map(e => [e.id,e.name,e.type,e.serial,e.manufacturer,e.model,e.norm,e.purchaseDate,e.manufactureDate,e.lifespan,e.location,e.owner,e.status,e.notes].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`));
+    const headers = ['ID','Nume','Tip','Serial','Producator','Model','Lot','Norma','Data cumparare','Data fabricatie','Durata viata','Localitate','Proprietar','Status','Note'];
+    const rows = db.equipment.map(e => [e.id,e.name,e.type,e.serial,e.manufacturer,e.model,e.lot||'',e.norm,e.purchaseDate,e.manufactureDate,e.lifespan,e.location,e.owner,e.status,e.notes].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`));
     csv = '\uFEFF' + [headers,...rows].map(r=>r.join(',')).join('\n');
     filename = `sicher_echipamente_${d}.csv`;
   }
   const id = await uploadToDrive(filename, 'text/csv', csv, false);
-  if (id) toast(`☁ ${filename} salvat în Drive!`, 'success');
+  if (id) toast(`☁ ${filename} salvat in Drive!`, 'success');
 }
 
 async function driveUploadJSON() {
-  if (!_driveSignedIn) { toast('Conectează-te la Google Drive în Setări Cloud.', 'error'); showPage('drive-settings'); return; }
+  if (!_driveSignedIn) { toast('Conecteaza-te la Google Drive in Setari Cloud.', 'error'); showPage('drive-settings'); return; }
   const d = new Date().toISOString().slice(0,10);
   const filename = `sicher_backup_${d}.json`;
   const json = JSON.stringify(db, null, 2);
   const id = await uploadToDrive(filename, 'application/json', json, false);
-  if (id) toast(`☁ Backup JSON salvat în Drive!`, 'success');
+  if (id) toast(`☁ Backup JSON salvat in Drive!`, 'success');
 }
 
 async function driveUploadPdfBlob(pdfBase64, insId, date) {
   const filename = `PPE_${insId}_${date}.pdf`;
   const id = await uploadToDrive(filename, 'application/pdf', pdfBase64, true);
-  if (id) toast(`☁ PDF ${filename} salvat în Drive!`, 'success');
+  if (id) toast(`☁ PDF ${filename} salvat in Drive!`, 'success');
   return id;
 }
 
-// ── Auto-upload trigger (called after saveInspection) ──
+// ── Auto-upload trigger ───────────────────────────────
 async function driveAutoUploadAfterInspection(ins) {
   const cfg = loadDriveConfig();
   if (!_driveSignedIn) return;
   const promises = [];
-  if (cfg.autoPdf) {
-    // generate PDF then upload
-    promises.push(generateInspectionPDF(ins, true));
-  }
+  if (cfg.autoPdf) promises.push(generateInspectionPDF(ins, true));
   if (cfg.autoCsvInsp)  promises.push(driveUploadCSV('inspectii'));
   if (cfg.autoCsvEchip) promises.push(driveUploadCSV('echipamente'));
   if (promises.length) {
-    toast('⏫ Salvare automată în Drive...', 'info');
+    toast('⏫ Salvare automata in Drive...', 'info');
     await Promise.allSettled(promises);
   }
 }
@@ -5010,7 +5040,7 @@ function renderDriveLog() {
   const el = document.getElementById('drive-upload-log');
   if (!el) return;
   const log = loadDriveConfig().log || [];
-  if (!log.length) { el.innerHTML = '<em style="color:var(--text3)">Niciun upload efectuat încă.</em>'; return; }
+  if (!log.length) { el.innerHTML = '<em style="color:var(--text3)">Niciun upload efectuat inca.</em>'; return; }
   el.innerHTML = log.map(l => {
     const ok = l.status === 'ok';
     return `<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid var(--border)">
@@ -5029,10 +5059,7 @@ function clearDriveLog() {
 // ── Init on page load ─────────────────────────────────
 function initDriveOnPageLoad() {
   applyDriveConfigToUI();
-  // if gapi already loaded (async might have fired)
-  if (window.gapi && window.gapi.load) gapiLoaded();
-  else if (window._gapiLoadFailed) setDriveStatus('no-client');
-  else setDriveStatus('no-client'); // will update when gapiLoaded fires
+  // GIS and GAPI load async — _maybeInitDrive() called by each when ready
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5052,6 +5079,87 @@ function toast(msg, type='info') {
 // ═══════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// PWA INSTALL PROMPT
+// ═══════════════════════════════════════════════════════
+
+let _pwaPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  showPwaPrompt();
+});
+
+window.addEventListener('appinstalled', () => {
+  hidePwaPrompt();
+  toast('✅ SicherShield instalat cu succes!', 'success');
+});
+
+function showPwaPrompt() {
+  // Don't show if already installed (standalone mode)
+  if (window.matchMedia('(display-mode: standalone)').matches) return;
+  // Don't show if dismissed recently (24h)
+  const dismissed = localStorage.getItem('ss_pwa_dismissed');
+  if (dismissed && (Date.now() - parseInt(dismissed)) < 24 * 60 * 60 * 1000) return;
+
+  const overlay = document.getElementById('pwa-install-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+
+  // Show native install button if prompt available
+  const btn = document.getElementById('pwa-install-btn');
+  const iosHint = document.getElementById('pwa-ios-hint');
+  if (_pwaPrompt) {
+    if (btn) btn.style.display = 'block';
+  } else {
+    // iOS — no beforeinstallprompt, show manual hint
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isInStandalone = window.navigator.standalone;
+    if (isIos && !isInStandalone) {
+      if (iosHint) iosHint.style.display = 'block';
+    }
+  }
+}
+
+function hidePwaPrompt() {
+  const overlay = document.getElementById('pwa-install-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+async function pwaInstall() {
+  if (!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  const { outcome } = await _pwaPrompt.userChoice;
+  _pwaPrompt = null;
+  hidePwaPrompt();
+  if (outcome === 'accepted') {
+    toast('✅ SicherShield se instalează...', 'success');
+  }
+}
+
+function pwaDismiss() {
+  localStorage.setItem('ss_pwa_dismissed', Date.now().toString());
+  hidePwaPrompt();
+}
+
+// Show prompt on load after 1.5s (only first visit or after 24h)
+setTimeout(() => {
+  if (!window.matchMedia('(display-mode: standalone)').matches) {
+    const dismissed = localStorage.getItem('ss_pwa_dismissed');
+    if (!dismissed || (Date.now() - parseInt(dismissed)) > 24 * 60 * 60 * 1000) {
+      // For Android Chrome: beforeinstallprompt will have fired already
+      // For iOS: show manually
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isIos && !window.navigator.standalone) {
+        showPwaPrompt();
+      }
+      // For Android/Chrome: already handled by beforeinstallprompt event
+    }
+  }
+}, 1500);
+
 
 loadDB();
 renderDashboard();
