@@ -5517,14 +5517,19 @@ async function startNfcWrite(equipId) {
   // Short URL: GAS_URL?v=ABCDEF (121 bytes — incape pe ORICE tag NTAG213/215/216)
   let shortCode = '';
   try {
-    const r = await gasCall({ action: 'createShortUrl', eqId: eq.id });
-    if (r && r.ok) shortCode = r.code;
+    // POST — createShortUrl scrie in Spreadsheet, nu poate fi GET
+    const r = await gasCallPost({ action: 'createShortUrl', eqId: eq.id });
+    if (r && r.ok && r.code) {
+      shortCode = r.code;
+    } else if (r && r.error) {
+      console.warn('[GAS] createShortUrl error:', r.error);
+    }
   } catch(e) {
     console.warn('[GAS] createShortUrl failed:', e.message);
   }
 
   if (!shortCode) {
-    toast('Nu s-a putut genera codul NFC. Verifică conexiunea GAS.', 'error');
+    toast('Nu s-a putut genera codul NFC. Verifică că GAS e deployed și SPREADSHEET_ID e setat.', 'error');
     return;
   }
 
