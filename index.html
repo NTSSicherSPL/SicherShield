@@ -4338,8 +4338,8 @@ function showDetail(id) {
       </div>
       <div class="equip-hero-qr">
         <div class="meta-key" style="text-align:center">Cod QR echipament</div>
-        <div class="qr-box" id="qr-box-${id}"></div>
-        <button class="btn btn-ghost btn-xs" onclick="downloadQR('${id}','${eq.name}')">⬇ Descarcă QR</button>
+        <div class="qr-box" id="qr-box-${id}"><div style="font-family:var(--font-m);font-size:10px;color:var(--text3);padding:8px;text-align:center">⏳ generare...</div></div>
+        <button class="btn btn-ghost btn-xs" id="btn-dl-qr-${id}" onclick="downloadQR('${id}','${eq.name}')" disabled>⬇ Descarcă QR</button>
         <span style="font-family:var(--font-m);font-size:10px;color:var(--text3)">${eq.id}</span>
       </div>
     </div>
@@ -4353,16 +4353,35 @@ function showDetail(id) {
     </div>
   `;
 
-  // Generate QR
-  setTimeout(() => {
+  // Generează QR cu URL GAS securizat (async — necesită token de la server)
+  setTimeout(async () => {
     const el = document.getElementById('qr-box-' + id);
-    if (el && typeof QRCode !== 'undefined') {
-      el.innerHTML = '';
+    const dlBtn = document.getElementById('btn-dl-qr-' + id);
+    if (!el || typeof QRCode === 'undefined') return;
+
+    // Construieste URL-ul GAS cu token — acelasi mecanism ca NFC
+    const gasBase = _activeGasUrl();
+    let qrText = eq.id; // fallback daca GAS nu e configurat
+    if (gasBase && !gasBase.includes('INLOCUIESTE')) {
       try {
-        new QRCode(el, { text: eq.id, width: 100, height: 100, colorDark:'#000', colorLight:'#fff' });
+        const r = await gasCall({ action: 'getToken', eqId: eq.id });
+        if (r && r.ok && r.token) {
+          qrText = gasBase + '?action=view&eq=' + encodeURIComponent(eq.id) + '&token=' + r.token;
+        }
       } catch(e) {
-        el.innerHTML = `<div style="font-family:var(--font-m);font-size:9px;color:#333;word-break:break-all;padding:4px">${eq.id}</div>`;
+        console.warn('[QR] getToken failed, folosesc eq.id:', e.message);
       }
+    }
+
+    el.innerHTML = '';
+    // Stocheaza URL-ul generat pe elementul QR pentru downloadQR()
+    el.dataset.qrUrl = qrText;
+    if (dlBtn) dlBtn.disabled = false;
+
+    try {
+      new QRCode(el, { text: qrText, width: 100, height: 100, colorDark: '#000000', colorLight: '#ffffff' });
+    } catch(e) {
+      el.innerHTML = `<div style="font-family:var(--font-m);font-size:9px;color:#333;word-break:break-all;padding:4px">${eq.id}</div>`;
     }
   }, 150);
 }
@@ -4388,6 +4407,9 @@ function renderHistoryItem(ins) {
         <div class="history-checks">${checkHtml}</div>
         ${ins.note ? `<div class="history-note">${ins.note}</div>` : ''}
         ${photosHtml}
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-xs" onclick="downloadInspectionQR('${ins.id}','${ins.equipId}')">⬇ QR inspecție</button>
+        </div>
       </div>
     </div>`;
 }
@@ -5617,25 +5639,113 @@ function checkUrlEquipParam() {
 // ═══════════════════════════════════════════════════════
 
 function downloadQR(id, name) {
+  // Citeste URL-ul GAS deja generat de showDetail (stocat in dataset.qrUrl)
+  const existingEl = document.getElementById('qr-box-' + id);
+  const qrText = (existingEl && existingEl.dataset.qrUrl) ? existingEl.dataset.qrUrl : id;
+
   const tempDiv = document.createElement('div');
   tempDiv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:white;padding:10px';
   document.body.appendChild(tempDiv);
-  new QRCode(tempDiv, { text:id, width:200, height:200, colorDark:'#000', colorLight:'#fff' });
+  new QRCode(tempDiv, { text: qrText, width: 300, height: 300, colorDark: '#000000', colorLight: '#ffffff' });
+
   setTimeout(() => {
-    const img = tempDiv.querySelector('img');
-    if (img) {
-      const a = document.createElement('a');
-      a.href = img.src;
-      a.download = `QR_${id}_${name.replace(/\s+/g,'_')}.png`;
-      a.click();
+    const canvas = tempDiv.querySelector('canvas');
+    const filename = 'QR_' + id + '_' + name.replace(/\s+/g, '_') + '.png';
+
+    if (canvas) {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch(e) {
+        const win = window.open();
+        if (win) { win.document.write('<img src="' + canvas.toDataURL() + '">'); }
+        else { toast('Permite popup-urile pentru a descarca QR-ul.', 'error'); }
+      }
+    } else {
+      const img = tempDiv.querySelector('img');
+      if (img && img.src) {
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        toast('Nu s-a putut genera QR-ul. Încearcă din nou.', 'error');
+      }
     }
+
     document.body.removeChild(tempDiv);
-  }, 200);
+  }, 250);
 }
 
-// ═══════════════════════════════════════════════════════
-// MODAL — ADD / EDIT EQUIPMENT
-// ═══════════════════════════════════════════════════════
+// Descarca QR pentru o inspectie specifica — URL GAS cu token, deschide viewer la straini
+async function downloadInspectionQR(insId, equipId) {
+  const ins = db.inspections.find(i => i.id === insId);
+  const eq  = db.equipment.find(e => e.id === equipId);
+  if (!ins || !eq) { toast('Date lipsă pentru QR.', 'error'); return; }
+
+  toast('⏳ Generare QR...', 'info');
+
+  const gasBase = _activeGasUrl();
+  let qrText = eq.id; // fallback daca GAS nu e configurat
+
+  if (gasBase && !gasBase.includes('INLOCUIESTE')) {
+    try {
+      const r = await gasCall({ action: 'getToken', eqId: eq.id });
+      if (r && r.ok && r.token) {
+        qrText = gasBase + '?action=view&eq=' + encodeURIComponent(eq.id) + '&token=' + r.token;
+      }
+    } catch(e) {
+      console.warn('[QR] getToken failed:', e.message);
+    }
+  }
+
+  const tempDiv = document.createElement('div');
+  tempDiv.style.cssText = 'position:fixed;left:-9999px;top:-9999px;background:white;padding:10px';
+  document.body.appendChild(tempDiv);
+  new QRCode(tempDiv, { text: qrText, width: 300, height: 300, colorDark: '#000000', colorLight: '#ffffff' });
+
+  setTimeout(() => {
+    const canvas = tempDiv.querySelector('canvas');
+    const filename = 'QR_' + eq.id + '_' + ins.date + '_' + eq.name.replace(/\s+/g, '_') + '.png';
+
+    if (canvas) {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast('✅ QR descărcat.', 'success');
+      } catch(e) {
+        const win = window.open();
+        if (win) win.document.write('<img src="' + canvas.toDataURL() + '">');
+        else toast('Permite popup-urile pentru a descărca QR-ul.', 'error');
+      }
+    } else {
+      const img = tempDiv.querySelector('img');
+      if (img && img.src) {
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        toast('Nu s-a putut genera QR-ul.', 'error');
+      }
+    }
+    document.body.removeChild(tempDiv);
+  }, 300);
+}
 
 function showModal(type, param) {
   document.getElementById('modal-overlay').classList.add('open');
