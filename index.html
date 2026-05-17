@@ -2033,15 +2033,9 @@ textarea { resize: vertical; min-height: 80px; }
           <span class="tab-icon">🔵</span> Google Drive
           <span class="tab-badge" id="tab-gdrive-badge" style="display:none">ON</span>
         </button>
-        <button class="settings-tab tab-webdav" onclick="switchSettingsTab('webdav', this)">
-          <span class="tab-icon">🖥️</span> WebDAV NAS
-          <span class="tab-badge" id="tab-webdav-badge" style="display:none;background:var(--green)">✓</span>
-        </button>
         <button class="settings-tab tab-synology" onclick="switchSettingsTab('synology', this)">
-          <span class="tab-icon">🔧</span> Synology
-        </button>
-        <button class="settings-tab tab-github" onclick="switchSettingsTab('github', this)">
-          <span class="tab-icon">🐙</span> GitHub
+          <span class="tab-icon">🖥️</span> NAS Synology
+          <span class="tab-badge" id="tab-syn-badge" style="display:none;background:var(--green)">✓</span>
         </button>
         <button class="settings-tab tab-log" onclick="switchSettingsTab('log', this)">
           <span class="tab-icon">📜</span> Jurnal
@@ -2135,86 +2129,86 @@ textarea { resize: vertical; min-height: 80px; }
 
       </div>
 
-      </div>
-
-      <!-- ══ TAB: WEBDAV NAS ══ -->
-      <div class="settings-panel" id="panel-webdav">
+      <!-- ══ TAB: NAS SYNOLOGY ══ -->
+      <div class="settings-panel" id="panel-synology">
 
         <!-- Status card -->
         <div class="card" style="border-color:rgba(96,165,250,.3)">
-          <div class="card-title" style="color:var(--blue)">🖥️ Backup direct pe NAS prin WebDAV</div>
-          <div style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--s3);border:1px solid var(--border);border-radius:8px;margin-bottom:0">
-            <span id="wdav-status-badge" style="font-size:24px">⚪</span>
+          <div class="card-title" style="color:var(--blue)">🖥️ Sincronizare NAS Synology</div>
+          <div style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
+            <span id="syn-status-icon" style="font-size:28px">⚪</span>
             <div style="flex:1">
-              <div id="wdav-status-text" style="font-size:14px;font-weight:600;color:var(--text3)">Neconfigurat</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px">Ultimul backup: <span id="wdav-last-sync" style="font-family:var(--font-m)">—</span></div>
+              <div id="syn-status-text" style="font-size:14px;font-weight:600;color:var(--text3)">Neconfigurat</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:3px">Ultimul backup: <span id="syn-last-sync" style="font-family:var(--font-m)">—</span></div>
             </div>
-            <button class="btn btn-sec btn-sm" onclick="webdavBackupNow().then(()=>{})" style="flex-shrink:0">⬆ Backup acum</button>
+            <button class="btn btn-sec btn-sm" onclick="synBackupNow()" style="flex-shrink:0">⬆ Backup acum</button>
           </div>
         </div>
 
         <!-- Config card -->
         <div class="card">
-          <div class="card-title">⚙️ Configurare conexiune</div>
+          <div class="card-title">⚙️ Configurare</div>
           <div style="display:flex;flex-direction:column;gap:14px">
 
             <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">URL WebDAV NAS</label>
-              <input type="text" id="wdav-url" placeholder="https://nts2022.ddns.net:5006" style="font-family:var(--font-m);font-size:13px">
-              <div style="font-size:11px;color:var(--text3);margin-top:4px">DSM → Package Center → WebDAV Server → portul afișat acolo</div>
+              <label class="form-label">URL bridge.php pe NAS</label>
+              <input type="text" id="syn-bridge-url" placeholder="https://82.78.243.242:5001/bridge.php" style="font-family:var(--font-m);font-size:13px" oninput="saveSynConfig()">
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">Fișierul <code style="font-family:var(--font-m)">bridge.php</code> instalat în Web Station pe NAS (instrucțiuni mai jos)</div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-              <div class="form-group" style="margin-bottom:0">
-                <label class="form-label">Utilizator DSM</label>
-                <input type="text" id="wdav-user" placeholder="SicherShield" autocomplete="off">
-              </div>
-              <div class="form-group" style="margin-bottom:0">
-                <label class="form-label">Parolă</label>
-                <input type="password" id="wdav-pass" placeholder="••••••••" autocomplete="off">
-              </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Cheie secretă (token)</label>
+              <input type="text" id="syn-token" placeholder="un_sir_secret_ales_de_tine" style="font-family:var(--font-m);font-size:13px" oninput="saveSynConfig()">
+              <div style="font-size:11px;color:var(--text3);margin-top:4px">Același token în bridge.php și aici — protejează accesul la fișiere</div>
             </div>
 
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-              <input type="checkbox" id="wdav-enabled" checked style="width:16px;height:16px;accent-color:var(--accent)">
+              <input type="checkbox" id="syn-enabled" checked style="width:16px;height:16px;accent-color:var(--accent)" onchange="saveSynConfig()">
               <div>
                 <div style="font-size:14px;color:var(--text);font-weight:500">Backup automat activat</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:2px">Salvează pe NAS automat după fiecare inspecție sau echipament modificat</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:2px">Trimite backup pe NAS automat după fiecare salvare</div>
               </div>
             </label>
 
             <div style="display:flex;gap:10px">
-              <button class="btn btn-primary" onclick="saveWebdavConfig()" style="flex:1">💾 Salvează configurarea</button>
-              <button class="btn btn-sec" onclick="webdavTest()" style="flex:1">🔌 Testează conexiunea</button>
+              <button class="btn btn-primary" onclick="saveSynConfig()" style="flex:1">💾 Salvează</button>
+              <button class="btn btn-sec" onclick="synTest()" style="flex:1">🔌 Testează</button>
             </div>
 
           </div>
         </div>
 
-        <!-- How it works card -->
+        <!-- bridge.php instructions -->
         <div class="card">
-          <div class="card-title">ℹ️ Cum funcționează</div>
+          <div class="card-title">📋 Instalare bridge.php pe NAS (5 minute)</div>
           <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text3);line-height:1.7">
-            <div style="display:flex;gap:12px;align-items:flex-start;padding:10px;background:var(--s3);border-radius:8px">
-              <span style="font-size:18px;flex-shrink:0">💾</span>
-              <div><strong style="color:var(--text)">Backup automat</strong> — după fiecare salvare (echipament sau inspecție), datele sunt trimise direct pe NAS în 2 secunde. Fișierul <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m);font-size:11px">/SicherShield/sicher_backup.json</code> e actualizat.</div>
+
+            <div style="display:flex;gap:12px;padding:10px;background:var(--s3);border-radius:8px;align-items:flex-start">
+              <span style="background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">1</span>
+              <div><strong style="color:var(--text)">Instalează Web Station</strong> — DSM → Package Center → caută <strong>Web Station</strong> → Instalează. Activează PHP 8.x în Web Station → PHP Settings.</div>
             </div>
-            <div style="display:flex;gap:12px;align-items:flex-start;padding:10px;background:var(--s3);border-radius:8px">
-              <span style="font-size:18px;flex-shrink:0">🔄</span>
-              <div><strong style="color:var(--text)">Restore automat</strong> — la deschiderea app-ului pe orice dispozitiv, se verifică dacă NAS-ul are date mai noi. Dacă da, sunt preluate automat.</div>
+
+            <div style="display:flex;gap:12px;padding:10px;background:var(--s3);border-radius:8px;align-items:flex-start">
+              <span style="background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">2</span>
+              <div><strong style="color:var(--text)">Copiază bridge.php</strong> — File Station → <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m);font-size:11px">web/</code> → uploadează fișierul <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m);font-size:11px">bridge.php</code> (descarcă mai jos)</div>
             </div>
-            <div style="display:flex;gap:12px;align-items:flex-start;padding:10px;background:var(--s3);border-radius:8px">
-              <span style="font-size:18px;flex-shrink:0">📱</span>
-              <div><strong style="color:var(--text)">Multi-dispozitiv</strong> — salvezi pe telefon, deschizi pe laptop → datele sunt deja acolo. Fără cloud terț, totul pe NAS-ul tău.</div>
+
+            <div style="display:flex;gap:12px;padding:10px;background:var(--s3);border-radius:8px;align-items:flex-start">
+              <span style="background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">3</span>
+              <div><strong style="color:var(--text)">Editează token-ul</strong> — deschide bridge.php, schimbă <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m);font-size:11px">SECRET_TOKEN</code> cu un șir ales de tine. Pune același șir în câmpul de mai sus.</div>
             </div>
-            <div style="padding:10px 14px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.2);border-radius:8px;color:var(--yellow)">
-              ⚠️ <strong>CORS:</strong> Synology WebDAV permite implicit cereri din browser. Dacă primești eroare CORS, activează din <strong>WebDAV Server → Settings → Allow CORS</strong>.
+
+            <div style="display:flex;gap:12px;padding:10px;background:var(--s3);border-radius:8px;align-items:flex-start">
+              <span style="background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px">4</span>
+              <div><strong style="color:var(--text)">URL bridge</strong> — pune în câmpul de mai sus: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m);font-size:11px">https://82.78.243.242:5001/bridge.php</code></div>
             </div>
+
+            <button class="btn btn-primary" onclick="synDownloadBridge()" style="margin-top:4px">⬇ Descarcă bridge.php</button>
+
           </div>
         </div>
 
       </div>
-      <div class="settings-panel" id="panel-synology">
 
         <!-- Flux diagram card -->
         <div class="card" style="border-color:rgba(96,165,250,.3)">
@@ -2283,168 +2277,6 @@ textarea { resize: vertical; min-height: 80px; }
                 <div style="font-size:12px;color:var(--text3);line-height:1.6">Apasă <strong style="color:var(--text2)">Start</strong> — de acum orice fișier încărcat în Drive apare automat pe NAS în 10–60 secunde</div>
               </div>
             </div>
-
-          </div>
-        </div>
-
-        <!-- Settings card -->
-        <div class="card">
-          <div class="card-title">⚙️ Preferințe sincronizare</div>
-          <div style="display:flex;flex-direction:column;gap:14px">
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
-              <input type="checkbox" id="cfg-nas-notify" style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent)" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">Notificări DSM la fișier nou</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:2px">Activează din DSM → Notification Center → Cloud Sync events</div>
-              </div>
-            </label>
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
-              <input type="checkbox" id="cfg-nas-versioning" style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent)" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">Versionare fișiere pe NAS</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:2px">Activează din DSM → File Station → Proprietăți folder → Enable version history</div>
-              </div>
-            </label>
-          </div>
-          <div style="margin-top:16px;padding:10px 14px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:6px;font-size:12px;color:var(--green);line-height:1.7">
-            ✅ <strong>Recomandat:</strong> Sync unidirecțional Drive → NAS. Drive = sursă de adevăr, NAS = arhivă locală redundantă. Nu edita fișierele direct pe NAS.
-          </div>
-        </div>
-
-        <!-- DSM access card -->
-        <div class="card">
-          <div class="card-title">🌐 Acces rapid DSM</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Adresă DSM (IP sau QuickConnect)</label>
-              <div style="display:flex;gap:8px;margin-top:6px">
-                <input type="text" id="cfg-nas-url" placeholder="http://192.168.1.100:5000 sau QuickConnect ID" oninput="saveDriveConfig()" style="flex:1">
-                <button class="btn btn-sec btn-sm" onclick="openNasDSM()" style="flex-shrink:0;white-space:nowrap">🌐 Deschide DSM</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-
-      <!-- ══ TAB: GITHUB ══ -->
-      <div class="settings-panel" id="panel-github">
-
-        <div class="card" style="border-color:rgba(255,255,255,.15)">
-          <div class="card-title">🐙 Publicare pe GitHub Pages</div>
-          <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px">
-            GitHub Pages găzduiește SicherShield gratuit pe HTTPS — necesar pentru NFC, Google Drive API și fonturi.
-            Fișierul HTML se încarcă direct, fără build tools.
-          </p>
-
-          <div style="display:flex;flex-direction:column;gap:10px">
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">1</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Creează cont și repository GitHub</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  Mergi la <a href="https://github.com" target="_blank" style="color:var(--blue)">github.com</a> → <strong style="color:var(--text2)">New repository</strong><br>
-                  Nume: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">sichershield</code> · Visibility: <strong style="color:var(--text2)">Public</strong>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">2</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Încarcă fișierul SicherShield.html</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  În repository → <strong style="color:var(--text2)">Add file → Upload files</strong><br>
-                  Redenumește fișierul în <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">index.html</code> înainte de upload
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">3</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Activează GitHub Pages</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  Repository → <strong style="color:var(--text2)">Settings → Pages</strong><br>
-                  Source: <strong style="color:var(--text2)">Deploy from a branch</strong> · Branch: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">main</code> · Folder: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">/(root)</code>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">4</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">URL-ul tău HTTPS</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  După ~2 minute aplicația e disponibilă la:<br>
-                  <code style="background:var(--bg);padding:2px 8px;border-radius:3px;font-family:var(--font-m);color:var(--green)">https://username.github.io/sichershield/</code><br>
-                  Adaugă acest URL în Google Cloud Console → Authorized JS origins (pentru Drive API)
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">5</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Update fișier (pentru versiuni noi)</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  Repository → click pe <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">index.html</code> → <strong style="color:var(--text2)">✏️ Edit (creion)</strong> → <em>sau</em><br>
-                  <strong style="color:var(--text2)">Add file → Upload files</strong> → suprascrie fișierul → <strong style="color:var(--text2)">Commit changes</strong><br>
-                  GitHub Pages se actualizează automat în ~60 secunde
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🔄 Flux complet recomandat</div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:16px 0;font-size:12px;font-weight:600;color:var(--text2)">
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid var(--border);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">💻</div>
-              <div>Editezi</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">Claude AI</div>
-            </div>
-            <div style="color:var(--accent);font-size:18px">→</div>
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid rgba(255,255,255,.15);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">🐙</div>
-              <div>GitHub Pages</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">HTTPS hosting</div>
-            </div>
-            <div style="color:var(--accent);font-size:18px">→</div>
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid rgba(66,133,244,.3);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">🔵</div>
-              <div>Google Drive</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">rapoarte + PDF</div>
-            </div>
-            <div style="color:var(--accent);font-size:18px">→</div>
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid rgba(96,165,250,.3);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">🖥️</div>
-              <div>NAS Synology</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">arhivă locală</div>
-            </div>
-          </div>
-          <div style="padding:10px 14px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:6px;font-size:12px;color:var(--green);line-height:1.7;margin-top:8px">
-            ✅ <strong>Date utilizator</strong> (echipamente, inspecții, fotografii) se salvează în <strong>localStorage</strong> al browserului — nu pe GitHub. GitHub găzduiește doar codul aplicației.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">⚙️ URL aplicație</div>
-          <div class="form-group">
-            <label class="form-label">URL-ul tău GitHub Pages (pentru NFC și Drive API)</label>
-            <div style="display:flex;gap:8px;margin-top:6px">
-              <input type="text" id="cfg-app-url" placeholder="https://username.github.io/sichershield/" oninput="saveDriveConfig()" style="flex:1">
-              <button class="btn btn-sec btn-sm" onclick="const u=document.getElementById('cfg-app-url').value;if(u)window.open(u,'_blank')" style="flex-shrink:0">🔗 Test</button>
-            </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:5px">Folosit la scrierea tag-urilor NFC — tag-ul va conține acest URL + ?eq=ID_echipament</div>
-          </div>
-        </div>
-
-      </div>
 
       <!-- ══ TAB: JURNAL ══ -->
       <div class="settings-panel" id="panel-log">
@@ -4149,181 +3981,6 @@ function prefillFromCatalog(brand, model, type, norm, lifespan, notes, workLifes
 const DB_KEY = 'alpicheck_db';
 let db = { equipment: [], inspections: [] };
 
-// ═══════════════════════════════════════════════════════
-// WEBDAV — backup/restore direct pe Synology NAS
-// ═══════════════════════════════════════════════════════
-
-function loadWebdavConfig() {
-  try { return JSON.parse(localStorage.getItem('ss_webdav_cfg') || '{}'); } catch { return {}; }
-}
-function saveWebdavConfig() {
-  const cfg = {
-    url:      document.getElementById('wdav-url')?.value.trim()  || '',
-    user:     document.getElementById('wdav-user')?.value.trim() || '',
-    pass:     document.getElementById('wdav-pass')?.value.trim() || '',
-    enabled:  document.getElementById('wdav-enabled')?.checked   || false,
-  };
-  localStorage.setItem('ss_webdav_cfg', JSON.stringify(cfg));
-  toast('⚙️ Configurare WebDAV salvată.', 'info');
-}
-function applyWebdavConfigToUI() {
-  const cfg = loadWebdavConfig();
-  const s = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-  const c = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
-  s('wdav-url',  cfg.url);
-  s('wdav-user', cfg.user);
-  s('wdav-pass', cfg.pass);
-  c('wdav-enabled', cfg.enabled !== false);
-  _updateWebdavStatusUI();
-}
-
-function _webdavHeaders() {
-  const cfg = loadWebdavConfig();
-  return { 'Authorization': 'Basic ' + btoa(cfg.user + ':' + cfg.pass), 'Content-Type': 'application/json' };
-}
-
-function _webdavFileUrl() {
-  const cfg = loadWebdavConfig();
-  const base = cfg.url.replace(/\/$/, '');
-  return base + '/SicherShield/sicher_backup.json';
-}
-
-// Asigură că folderul /SicherShield există pe NAS
-async function _webdavEnsureFolder() {
-  const cfg  = loadWebdavConfig();
-  const base = cfg.url.replace(/\/$/, '');
-  const folderUrl = base + '/SicherShield';
-  try {
-    await fetch(folderUrl, { method: 'MKCOL', headers: _webdavHeaders() });
-    // MKCOL returnează 201 (creat) sau 405 (există deja) — ambele sunt OK
-  } catch {}
-}
-
-// Backup pe NAS (debounced 2s)
-let _wdavTimer = null;
-function _scheduleWebdavBackup() {
-  const cfg = loadWebdavConfig();
-  if (!cfg.enabled || !cfg.url || !cfg.user || !cfg.pass) return;
-  if (_wdavTimer) clearTimeout(_wdavTimer);
-  _wdavTimer = setTimeout(webdavBackupNow, 2000);
-}
-
-async function webdavBackupNow() {
-  const cfg = loadWebdavConfig();
-  if (!cfg.url || !cfg.user || !cfg.pass) {
-    toast('⚠️ Configurează WebDAV în Setări Cloud → WebDAV NAS.', 'error');
-    return;
-  }
-  _setWebdavStatus('syncing');
-  try {
-    await _webdavEnsureFolder();
-    const payload = JSON.stringify(db);
-    const r = await fetch(_webdavFileUrl(), {
-      method:  'PUT',
-      headers: _webdavHeaders(),
-      body:    payload,
-    });
-    if (!r.ok && r.status !== 201 && r.status !== 204)
-      throw new Error('HTTP ' + r.status + ' ' + r.statusText);
-    _setWebdavStatus('ok');
-    const el = document.getElementById('wdav-last-sync');
-    if (el) el.textContent = new Date().toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-    console.log('[WebDAV] Backup OK →', _webdavFileUrl());
-  } catch(e) {
-    _setWebdavStatus('error', e.message);
-    console.warn('[WebDAV] Backup eșuat:', e.message);
-  }
-}
-
-// Restore de pe NAS la pornire
-async function webdavRestoreOnLoad() {
-  const cfg = loadWebdavConfig();
-  if (!cfg.enabled || !cfg.url || !cfg.user || !cfg.pass) return false;
-  try {
-    const r = await fetch(_webdavFileUrl(), {
-      method:  'GET',
-      headers: { 'Authorization': 'Basic ' + btoa(cfg.user + ':' + cfg.pass) },
-      signal:  AbortSignal.timeout(8000),
-    });
-    if (!r.ok) return false;
-    const remoteDb = await r.json();
-    if (!remoteDb || (!remoteDb.equipment && !remoteDb.inspections)) return false;
-    const localItems  = (db.equipment||[]).length  + (db.inspections||[]).length;
-    const remoteItems = (remoteDb.equipment||[]).length + (remoteDb.inspections||[]).length;
-    if (remoteItems > localItems) {
-      db = remoteDb;
-      if (!db.equipment)     db.equipment     = [];
-      if (!db.inspections)   db.inspections   = [];
-      if (!db.customCatalog) db.customCatalog = [];
-      localStorage.setItem(DB_KEY, JSON.stringify(db));
-      console.log('[WebDAV] Restaurat de pe NAS:', remoteItems, 'înregistrări');
-      toast('🔄 Date sincronizate de pe NAS (' + remoteItems + ' înregistrări).', 'info');
-      return true;
-    }
-    console.log('[WebDAV] Date locale sunt la zi.');
-    return false;
-  } catch(e) {
-    console.warn('[WebDAV] Restore eșuat:', e.message);
-    return false;
-  }
-}
-
-// Test conexiune
-async function webdavTest() {
-  const cfg = loadWebdavConfig();
-  if (!cfg.url || !cfg.user || !cfg.pass) {
-    toast('⚠️ Completează URL, user și parolă.', 'error'); return;
-  }
-  _setWebdavStatus('syncing');
-  try {
-    // PROPFIND pe root — verifică autentificarea și accesul
-    const r = await fetch(cfg.url.replace(/\/$/, '') + '/', {
-      method:  'PROPFIND',
-      headers: { 'Authorization': 'Basic ' + btoa(cfg.user + ':' + cfg.pass), 'Depth': '0' },
-      signal:  AbortSignal.timeout(6000),
-    });
-    if (r.ok || r.status === 207) {
-      _setWebdavStatus('ok');
-      toast('✅ Conexiune WebDAV reușită!', 'success');
-    } else {
-      throw new Error('HTTP ' + r.status + (r.status === 401 ? ' — user/parolă greșite' : ' — acces refuzat'));
-    }
-  } catch(e) {
-    _setWebdavStatus('error', e.message);
-    toast('❌ WebDAV: ' + e.message, 'error');
-  }
-}
-
-function _setWebdavStatus(state, msg) {
-  const badge = document.getElementById('wdav-status-badge');
-  const text  = document.getElementById('wdav-status-text');
-  const map = {
-    'ok':      ['✅', 'var(--green)',  'Conectat'],
-    'syncing': ['🔄', 'var(--yellow)', 'Se sincronizează…'],
-    'error':   ['❌', 'var(--red)',    'Eroare: ' + (msg||'')],
-    'idle':    ['⚪', 'var(--text3)',  'Neconfigurat'],
-  };
-  const [icon, color, label] = map[state] || map['idle'];
-  if (badge) { badge.textContent = icon; badge.style.color = color; }
-  if (text)  { text.textContent  = label; text.style.color = color; }
-  // Actualizează și badge-ul din sidebar
-  const navBadge = document.getElementById('webdav-nav-badge');
-  if (navBadge) {
-    navBadge.style.display = state === 'ok' ? '' : 'none';
-  }
-}
-
-function _updateWebdavStatusUI() {
-  const cfg = loadWebdavConfig();
-  if (!cfg.url || !cfg.user || !cfg.pass) {
-    _setWebdavStatus('idle');
-  } else if (cfg.enabled) {
-    _setWebdavStatus('ok');
-  } else {
-    _setWebdavStatus('idle');
-  }
-}
-
 function loadDB() {
   try {
     const raw = localStorage.getItem(DB_KEY);
@@ -4339,7 +3996,213 @@ function loadDB() {
 function saveDB() {
   localStorage.setItem(DB_KEY, JSON.stringify(db));
   updateSidebarCounts();
-  _scheduleWebdavBackup();
+  _scheduleNasBackup();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAS SYNC — bridge.php pe Web Station (portul 5001)
+// Soluție fără CORS: bridge.php rulează pe același server ca DSM
+// ═══════════════════════════════════════════════════════════════
+function loadSynConfig() {
+  try { return JSON.parse(localStorage.getItem('ss_syn_cfg') || '{}'); } catch { return {}; }
+}
+function saveSynConfig() {
+  const cfg = {
+    bridgeUrl: (document.getElementById('syn-bridge-url')?.value || '').trim(),
+    token:     (document.getElementById('syn-token')?.value     || '').trim(),
+    enabled:   document.getElementById('syn-enabled')?.checked !== false,
+  };
+  localStorage.setItem('ss_syn_cfg', JSON.stringify(cfg));
+  _updateSynStatusUI();
+  toast('⚙️ Configurare NAS salvată.', 'info');
+}
+function getSynCfg() {
+  const s = loadSynConfig();
+  return {
+    bridgeUrl: s.bridgeUrl || '',
+    token:     s.token     || '',
+    enabled:   s.enabled   !== false,
+  };
+}
+function applySynConfigToUI() {
+  const cfg = getSynCfg();
+  const el = id => document.getElementById(id);
+  if (el('syn-bridge-url')) el('syn-bridge-url').value = cfg.bridgeUrl;
+  if (el('syn-token'))      el('syn-token').value      = cfg.token;
+  if (el('syn-enabled'))    el('syn-enabled').checked  = cfg.enabled;
+  _updateSynStatusUI();
+}
+
+// Backup debounced 2s
+let _nasTimer = null;
+function _scheduleNasBackup() {
+  const cfg = getSynCfg();
+  if (!cfg.enabled || !cfg.bridgeUrl) return;
+  if (_nasTimer) clearTimeout(_nasTimer);
+  _nasTimer = setTimeout(synBackupNow, 2000);
+}
+
+async function synBackupNow() {
+  const cfg = getSynCfg();
+  if (!cfg.bridgeUrl) { toast('⚠️ Configurează NAS în Setări Cloud → NAS Synology.', 'error'); return; }
+  _setSynStatus('syncing');
+  try {
+    const r = await fetch(cfg.bridgeUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SS-Token': cfg.token },
+      body:    JSON.stringify({ action: 'backup', data: db }),
+      signal:  AbortSignal.timeout(15000),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Eroare bridge');
+    _setSynStatus('ok');
+    const el = document.getElementById('syn-last-sync');
+    if (el) el.textContent = new Date().toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    addDriveLog('NAS backup', 'ok');
+    console.log('[NAS] Backup OK');
+  } catch(e) {
+    _setSynStatus('error', e.message);
+    console.warn('[NAS] Backup eșuat:', e.message);
+  }
+}
+
+async function synRestoreOnLoad() {
+  const cfg = getSynCfg();
+  if (!cfg.enabled || !cfg.bridgeUrl) return false;
+  try {
+    const r = await fetch(cfg.bridgeUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SS-Token': cfg.token },
+      body:    JSON.stringify({ action: 'restore' }),
+      signal:  AbortSignal.timeout(10000),
+    });
+    const d = await r.json();
+    if (!d.ok || !d.data) return false;
+    const remote = d.data;
+    if (!remote.equipment && !remote.inspections) return false;
+    const localN  = (db.equipment||[]).length  + (db.inspections||[]).length;
+    const remoteN = (remote.equipment||[]).length + (remote.inspections||[]).length;
+    if (remoteN > localN) {
+      db = remote;
+      if (!db.equipment)     db.equipment     = [];
+      if (!db.inspections)   db.inspections   = [];
+      if (!db.customCatalog) db.customCatalog = [];
+      localStorage.setItem(DB_KEY, JSON.stringify(db));
+      toast('🔄 Date restaurate de pe NAS (' + remoteN + ' înregistrări).', 'info');
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.warn('[NAS] Restore eșuat:', e.message);
+    return false;
+  }
+}
+
+async function synTest() {
+  const cfg = getSynCfg();
+  if (!cfg.bridgeUrl) { toast('⚠️ Introdu URL-ul bridge.php.', 'error'); return; }
+  _setSynStatus('syncing');
+  try {
+    const r = await fetch(cfg.bridgeUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-SS-Token': cfg.token },
+      body:    JSON.stringify({ action: 'ping' }),
+      signal:  AbortSignal.timeout(8000),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Token greșit sau bridge eroare');
+    _setSynStatus('ok');
+    toast('✅ Conexiune NAS reușită! Bridge funcționează.', 'success');
+  } catch(e) {
+    _setSynStatus('error', e.message);
+    toast('❌ NAS: ' + e.message, 'error');
+  }
+}
+
+function _setSynStatus(state, msg) {
+  const icon = document.getElementById('syn-status-icon');
+  const text = document.getElementById('syn-status-text');
+  const badge = document.getElementById('tab-syn-badge');
+  const map = {
+    'ok':      ['✅', 'var(--green)',  'Conectat — backup automat activ'],
+    'syncing': ['🔄', 'var(--yellow)', 'Se sincronizează…'],
+    'error':   ['❌', 'var(--red)',    'Eroare: ' + (msg||'')],
+    'idle':    ['⚪', 'var(--text3)',  'Neconfigurat'],
+  };
+  const [ic, color, label] = map[state] || map['idle'];
+  if (icon)  { icon.textContent = ic; icon.style.color = color; }
+  if (text)  { text.textContent = label; text.style.color = color; }
+  if (badge) { badge.style.display = state === 'ok' ? '' : 'none'; }
+}
+function _updateSynStatusUI() {
+  const cfg = getSynCfg();
+  _setSynStatus(cfg.bridgeUrl && cfg.enabled ? 'ok' : 'idle');
+}
+
+// Generează și descarcă bridge.php
+function synDownloadBridge() {
+  const cfg = getSynCfg();
+  const token = cfg.token || 'SECRET_TOKEN_SCHIMBA_CU_CEVA_SECRET';
+  const php = `<?php
+/**
+ * SicherShield Bridge v1.0
+ * Copiaza in: DSM → File Station → web/ → bridge.php
+ * Acces: https://IP_NAS:5001/bridge.php
+ */
+
+// ── CONFIGURARE ───────────────────────────────────────
+define('SECRET_TOKEN', '${token}');
+define('BACKUP_FILE',  __DIR__ . '/sicher_backup.json');
+// ─────────────────────────────────────────────────────
+
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type, X-SS-Token');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
+
+// Verificare token
+$token = $_SERVER['HTTP_X_SS_TOKEN'] ?? '';
+if ($token !== SECRET_TOKEN) {
+    echo json_encode(['ok' => false, 'error' => 'Token invalid']);
+    exit;
+}
+
+$body = json_decode(file_get_contents('php://input'), true);
+$action = $body['action'] ?? '';
+
+switch ($action) {
+    case 'ping':
+        echo json_encode(['ok' => true, 'message' => 'Bridge activ']);
+        break;
+
+    case 'backup':
+        $data = $body['data'] ?? null;
+        if (!$data) { echo json_encode(['ok' => false, 'error' => 'Date lipsă']); break; }
+        $written = file_put_contents(BACKUP_FILE, json_encode($data, JSON_PRETTY_PRINT));
+        if ($written === false) { echo json_encode(['ok' => false, 'error' => 'Eroare scriere fișier']); break; }
+        echo json_encode(['ok' => true, 'bytes' => $written]);
+        break;
+
+    case 'restore':
+        if (!file_exists(BACKUP_FILE)) { echo json_encode(['ok' => false, 'error' => 'Niciun backup']); break; }
+        $content = file_get_contents(BACKUP_FILE);
+        $data = json_decode($content, true);
+        if (!$data) { echo json_encode(['ok' => false, 'error' => 'Backup corupt']); break; }
+        echo json_encode(['ok' => true, 'data' => $data]);
+        break;
+
+    default:
+        echo json_encode(['ok' => false, 'error' => 'Acțiune necunoscută: ' . $action]);
+}
+?>`;
+  const blob = new Blob([php], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bridge.php';
+  a.click();
+  toast('📥 bridge.php descărcat — copiază-l în web/ pe NAS.', 'success');
 }
 
 function genId() {
@@ -7527,9 +7390,9 @@ function clearDriveLog() {
 // ── Init on page load ─────────────────────────────────
 function initDriveOnPageLoad() {
   applyDriveConfigToUI();
-  applyWebdavConfigToUI();
-  // Restore de pe NAS la pornire (asincron)
-  webdavRestoreOnLoad().then(restored => {
+  applySynConfigToUI();
+  // Restore de pe NAS la pornire
+  synRestoreOnLoad().then(restored => {
     if (restored) { renderDashboard(); updateSidebarCounts(); }
   });
   // GIS și GAPI se încarcă async — _maybeInitDrive() e apelat de fiecare când e gata
@@ -7645,18 +7508,6 @@ setTimeout(() => {
 
 
 loadDB();
-// Pre-completare credențiale WebDAV (prima rulare)
-(function() {
-  const existing = localStorage.getItem('ss_webdav_cfg');
-  if (!existing || !JSON.parse(existing).url) {
-    localStorage.setItem('ss_webdav_cfg', JSON.stringify({
-      url:     'https://nts2022.ddns.net:5006',
-      user:    'SicherShield',
-      pass:    'Sicher2026!',
-      enabled: true,
-    }));
-  }
-})();
 renderDashboard();
 updateSidebarCounts();
 applyMobileUI();
