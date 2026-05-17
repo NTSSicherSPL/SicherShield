@@ -27,7 +27,11 @@
 <script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
 <script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
 <script>
-  // ── HARDCODAT: Client ID Google ──
+  // ── Google Apps Script URL — ZERO OAuth, zero popup ──────────────────
+  // Înlocuiește cu URL-ul generat după deployment în script.google.com
+  const GAS_URL = 'INLOCUIESTE_CU_URL_GAS_DUPA_DEPLOYMENT';
+
+  // ── Păstrat pentru compatibilitate Drive (PDF upload direct) ──────────
   const DRIVE_CLIENT_ID = '826960469113-sh9m91nlhcd3h42321c10a2mn04r1juv.apps.googleusercontent.com';
 
   // ── PWA Manifest injection (required for single-file HTML install) ──
@@ -2074,26 +2078,39 @@ textarea { resize: vertical; min-height: 80px; }
           </div>
         </div>
 
-        <!-- Sheets sync card -->
-        <div class="card" style="border-color:rgba(52,211,153,.3)">
-          <div class="card-title" style="color:var(--green)">📊 Google Sheets — Sincronizare live</div>
+        <!-- Google Sheets / GAS card -->
+        <div class="card" style="border-color:rgba(52,211,153,.35)">
+          <div class="card-title" style="color:var(--green)">📊 Google Sheets — Sincronizare automată</div>
           <div style="font-size:13px;color:var(--text3);line-height:1.8;margin-bottom:14px">
-            Toate echipamentele și inspecțiile sunt scrise automat într-un <strong style="color:var(--text)">Google Spreadsheet</strong> accesibil de pe orice dispozitiv — telefon, tabletă, laptop.
+            Date sincronizate automat în Google Sheets de pe <strong style="color:var(--text)">orice dispozitiv</strong>, fără login, fără popup — prin Google Apps Script.
           </div>
-          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">
-            <span style="font-size:22px">📋</span>
+
+          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px;margin-bottom:14px">
+            <span id="gas-status-icon" style="font-size:22px">⚪</span>
             <div style="flex:1">
-              <div style="font-size:13px;font-weight:600;color:var(--text)">Ultimul sync</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px" id="sheets-last-sync">—</div>
+              <div id="gas-status-text" style="font-size:13px;font-weight:600;color:var(--text3)">Neconfigurat</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px">Ultimul sync: <span id="gas-last-sync" style="font-family:var(--font-m)">—</span></div>
             </div>
-            <button class="btn btn-sec btn-sm" onclick="sheetsSyncAll().then(()=>toast('✅ Sheets sincronizat!','success'))">🔄 Sync acum</button>
+            <button class="btn btn-sec btn-sm" onclick="gasSyncAll().then(()=>toast('✅ Sync OK!','success'))">🔄 Sync acum</button>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-            <a id="sheets-link" href="#" target="_blank" class="btn btn-primary" style="display:none;flex:1;text-align:center;text-decoration:none">📊 Deschide Spreadsheet</a>
-            <button class="btn btn-sec btn-sm" onclick="setSheetsId('');toast('🗑 ID resetat — next sync creează unul nou.','info')" style="flex-shrink:0">🗑 Reset</button>
+
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label">URL Google Apps Script</label>
+            <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:var(--font-m);font-size:12px" oninput="saveGasUrl()">
+            <div style="font-size:11px;color:var(--text3);margin-top:4px">script.google.com → Deploy → Web app → copiază URL-ul</div>
           </div>
-          <div style="padding:10px 14px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:8px;font-size:12px;color:var(--green);line-height:1.7">
-            ✅ <strong>PDF inspecții</strong> — salvate automat în <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m);font-size:11px">Drive/SicherShield/PDF/</code> la fiecare inspecție nouă
+
+          <div style="padding:10px 14px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:8px;font-size:12px;color:var(--green);line-height:1.7;margin-bottom:10px">
+            ✅ <strong>PDF-uri inspecții</strong> salvate automat în Drive/SicherShield/PDF/<br>
+            ✅ <strong>Echipamente + Inspecții</strong> sincronizate live în Spreadsheet
+          </div>
+
+          <div style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text3);line-height:1.8">
+            <strong style="color:var(--text)">Instalare (5 min):</strong><br>
+            1. script.google.com → New project → copiază <strong>SicherShield_GAS_Code.gs</strong><br>
+            2. Schimbă <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--font-m)">SPREADSHEET_ID</code> cu ID-ul foii tale<br>
+            3. Deploy → New deployment → Web app → Anyone → copiază URL<br>
+            4. Lipește URL-ul în câmpul de mai sus
           </div>
         </div>
 
@@ -4090,6 +4107,117 @@ function prefillFromCatalog(brand, model, type, norm, lifespan, notes, workLifes
 const DB_KEY = 'alpicheck_db';
 let db = { equipment: [], inspections: [] };
 
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE APPS SCRIPT SYNC — zero OAuth, zero popup
+// Funcționează de pe orice dispozitiv fără autentificare
+// ═══════════════════════════════════════════════════════════════
+
+async function gasCall(params, timeoutMs = 15000) {
+  const url = (window._gasUrlOverride || localStorage.getItem('ss_gas_url') || GAS_URL || '').trim();
+  if (!url || url.includes('INLOCUIESTE')) {
+    console.warn('[GAS] URL nesetat — skip');
+    return null;
+  }
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const payload = encodeURIComponent(JSON.stringify(params));
+    const r = await fetch(url + '?payload=' + payload, {
+      method: 'GET', redirect: 'follow', signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const txt = await r.text();
+    if (!txt || !txt.trim()) throw new Error('Răspuns gol GAS');
+    return JSON.parse(txt);
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('Timeout GAS (15s)');
+    throw e;
+  }
+}
+
+// POST pentru date mari (PDF)
+async function gasCallPost(params, timeoutMs = 20000) {
+  const url = (window._gasUrlOverride || localStorage.getItem('ss_gas_url') || GAS_URL || '').trim();
+  if (!url || url.includes('INLOCUIESTE')) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, {
+      method: 'POST', redirect: 'follow', signal: ctrl.signal,
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(params)
+    });
+    clearTimeout(timer);
+    const txt = await r.text();
+    return JSON.parse(txt);
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+// Sync complet la fiecare saveDB (debounced 3s)
+let _gasTimer = null;
+function _scheduleGasSync() {
+  if (!GAS_URL || GAS_URL.includes('INLOCUIESTE')) return;
+  if (_gasTimer) clearTimeout(_gasTimer);
+  _gasTimer = setTimeout(gasSyncAll, 3000);
+}
+
+async function gasSyncAll() {
+  try {
+    const result = await gasCall({ action: 'syncAll', data: JSON.stringify(db) });
+    if (result && result.ok) {
+      const el = document.getElementById('gas-last-sync');
+      if (el) el.textContent = new Date().toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      console.log('[GAS] Sync OK —', result.equipment, 'echipamente,', result.inspections, 'inspecții');
+    }
+  } catch (e) {
+    console.warn('[GAS] Sync eșuat:', e.message);
+  }
+}
+
+// Restore la pornire — dacă Sheets are date mai noi
+async function gasRestoreOnLoad() {
+  try {
+    const result = await gasCall({ action: 'getAll' }, 10000);
+    if (!result || !result.ok) return false;
+    const remoteEq  = result.equipment  || [];
+    const remoteIns = result.inspections || [];
+    const remoteN   = remoteEq.length + remoteIns.length;
+    const localN    = db.equipment.length + db.inspections.length;
+    if (remoteN > localN) {
+      db.equipment   = remoteEq;
+      db.inspections = remoteIns;
+      if (!db.customCatalog) db.customCatalog = [];
+      localStorage.setItem(DB_KEY, JSON.stringify(db));
+      toast('🔄 Date sincronizate din Google Sheets (' + remoteEq.length + ' echipamente, ' + remoteIns.length + ' inspecții).', 'info');
+      return true;
+    }
+    // Dacă local avem mai multe, sincronizăm Sheets
+    if (localN > 0) gasSyncAll();
+    return false;
+  } catch (e) {
+    console.warn('[GAS] Restore eșuat:', e.message);
+    return false;
+  }
+}
+
+// Upload PDF prin GAS
+async function gasUploadPdf(pdfBase64, filename) {
+  try {
+    const result = await gasCallPost({ action: 'savePdf', pdfBase64, filename });
+    if (result && result.ok) {
+      console.log('[GAS] PDF salvat:', filename);
+      addDriveLog(filename, 'ok');
+    }
+  } catch (e) {
+    console.warn('[GAS] PDF upload eșuat:', e.message);
+  }
+}
+
 function loadDB() {
   try {
     const raw = localStorage.getItem(DB_KEY);
@@ -4105,7 +4233,7 @@ function loadDB() {
 function saveDB() {
   localStorage.setItem(DB_KEY, JSON.stringify(db));
   updateSidebarCounts();
-  _scheduleSheetsSync();
+  _scheduleGasSync(); // Sync automat în Sheets după fiecare salvare
 }
 
 function genId() {
@@ -6462,184 +6590,13 @@ function openNasDSM() {
 // GOOGLE DRIVE INTEGRATION — GIS (Google Identity Services)
 // ═══════════════════════════════════════════════════════
 
-const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
+const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
 let _gapiReady = false;
 let _gisReady  = false;
 let _driveToken = null;
 let _driveSignedIn = false;
 let _driveFolderId = null;
 let _driveSubIds = {};
-
-// ═══════════════════════════════════════════════════════════════
-// GOOGLE SHEETS SYNC — sincronizare permanentă multi-dispozitiv
-// ═══════════════════════════════════════════════════════════════
-
-const SHEETS_SS_KEY = 'ss_sheets_id'; // localStorage key pentru Spreadsheet ID
-
-function getSheetsId() {
-  return localStorage.getItem(SHEETS_SS_KEY) || '';
-}
-function setSheetsId(id) {
-  localStorage.setItem(SHEETS_SS_KEY, id);
-}
-
-// Apel Sheets API
-async function sheetsAPI(method, path, body) {
-  if (!_driveToken) throw new Error('Drive neconectat');
-  const url = 'https://sheets.googleapis.com/v4/spreadsheets' + path;
-  const opts = {
-    method,
-    headers: { 'Authorization': 'Bearer ' + _driveToken, 'Content-Type': 'application/json' },
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(url, opts);
-  if (!r.ok) {
-    const err = await r.json().catch(() => ({}));
-    throw new Error((err.error && err.error.message) || 'Sheets API error ' + r.status);
-  }
-  return r.json();
-}
-
-// Crează spreadsheet nou dacă nu există
-async function sheetsEnsureSpreadsheet() {
-  let ssId = getSheetsId();
-  if (ssId) {
-    // Verifică că există
-    try {
-      await sheetsAPI('GET', '/' + ssId + '?fields=spreadsheetId');
-      return ssId;
-    } catch { ssId = ''; }
-  }
-  // Crează nou
-  const ss = await sheetsAPI('POST', '', {
-    properties: { title: 'SicherShield — Date' },
-    sheets: [
-      { properties: { title: 'Echipamente', sheetId: 0 } },
-      { properties: { title: 'Inspecții',   sheetId: 1 } },
-    ]
-  });
-  ssId = ss.spreadsheetId;
-  setSheetsId(ssId);
-  // Mută în folderul SicherShield din Drive
-  try {
-    const folderId = await _ensureDriveFolder('SicherShield');
-    await fetch(`https://www.googleapis.com/drive/v3/files/${ssId}?addParents=${folderId}&removeParents=root`, {
-      method: 'PATCH',
-      headers: { 'Authorization': 'Bearer ' + _driveToken }
-    });
-  } catch {}
-  // Adaugă header-uri
-  await sheetsWriteHeaders(ssId);
-  return ssId;
-}
-
-async function sheetsWriteHeaders(ssId) {
-  const eqHeaders = ['ID','Nume','Tip','Serial','Producător','Model','Data achiziție','Data fabricație','Normă','Durată viață','Status','Locație','Responsabil','Note'];
-  const insHeaders = ['ID','ID Echipament','Echipament','Data','Inspector','Nr. Cert.','Verdict','Verificări','Retras','Note'];
-  await sheetsAPI('PUT', `/${ssId}/values/Echipamente!A1:N1?valueInputOption=RAW`, { values: [eqHeaders] });
-  await sheetsAPI('PUT', `/${ssId}/values/Inspecții!A1:J1?valueInputOption=RAW`, { values: [insHeaders] });
-}
-
-// Scrie TOATE datele în Sheets (sync complet)
-async function sheetsSyncAll() {
-  if (!_driveSignedIn) return;
-  try {
-    const ssId = await sheetsEnsureSpreadsheet();
-
-    // Echipamente
-    const eqRows = db.equipment.map(e => [
-      e.id, e.name, e.type, e.serial || '', e.manufacturer || '', e.model || '',
-      e.purchaseDate || '', e.manufactureDate || '', e.norm || '',
-      e.lifespan || '', e.status || 'ok', e.location || '', e.owner || '', e.notes || ''
-    ]);
-
-    // Inspecții
-    const insRows = db.inspections.map(i => {
-      const eq = db.equipment.find(e => e.id === i.equipId);
-      const checksStr = Object.entries(i.checks || {}).map(([k,v]) => `${k}: ${v}`).join(' | ');
-      return [
-        i.id, i.equipId, eq ? eq.name : i.equipId, i.date,
-        i.inspector || '', i.certNr || '', i.verdict || '',
-        checksStr, (i.withdrawal || []).join(', '), i.note || ''
-      ];
-    });
-
-    // Șterge și rescrie (clear + update)
-    await sheetsAPI('POST', `/${ssId}/values:batchClear`, {
-      ranges: ['Echipamente!A2:N10000', 'Inspecții!A2:J10000']
-    });
-
-    if (eqRows.length) {
-      await sheetsAPI('PUT', `/${ssId}/values/Echipamente!A2:N${eqRows.length+1}?valueInputOption=RAW`, { values: eqRows });
-    }
-    if (insRows.length) {
-      await sheetsAPI('PUT', `/${ssId}/values/Inspecții!A2:J${insRows.length+1}?valueInputOption=RAW`, { values: insRows });
-    }
-
-    console.log('[Sheets] Sync complet OK —', eqRows.length, 'echipamente,', insRows.length, 'inspecții');
-    const el = document.getElementById('sheets-last-sync');
-    if (el) el.textContent = new Date().toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-    addDriveLog('Sheets sync', 'ok');
-  } catch(e) {
-    console.warn('[Sheets] Sync eșuat:', e.message);
-    toast('⚠️ Sheets sync: ' + e.message, 'error');
-  }
-}
-
-// Citește datele din Sheets și le merge cu localStorage (la pornire)
-async function sheetsRestoreOnLoad() {
-  if (!_driveSignedIn) return false;
-  const ssId = getSheetsId();
-  if (!ssId) return false;
-  try {
-    const r = await sheetsAPI('GET', `/${ssId}/values:batchGet?ranges=Echipamente!A1:N10000&ranges=Inspecții!A1:J10000`);
-    const [eqSheet, insSheet] = r.valueRanges || [];
-
-    const eqRows  = (eqSheet.values  || []).slice(1).filter(r => r[0]);
-    const insRows = (insSheet.values || []).slice(1).filter(r => r[0]);
-
-    if (!eqRows.length && !insRows.length) return false;
-
-    const remoteEq = eqRows.map(r => ({
-      id: r[0], name: r[1] || '', type: r[2] || '', serial: r[3] || '',
-      manufacturer: r[4] || '', model: r[5] || '', purchaseDate: r[6] || '',
-      manufactureDate: r[7] || '', norm: r[8] || '', lifespan: r[9] || '',
-      status: r[10] || 'ok', location: r[11] || '', owner: r[12] || '', notes: r[13] || ''
-    }));
-
-    const remoteIns = insRows.map(r => ({
-      id: r[0], equipId: r[1] || '', date: r[3] || '', inspector: r[4] || '',
-      certNr: r[5] || '', verdict: r[6] || 'ok',
-      checks: Object.fromEntries((r[7] || '').split(' | ').filter(Boolean).map(s => { const [k,...v] = s.split(': '); return [k, v.join(': ')]; })),
-      withdrawal: (r[8] || '').split(', ').filter(Boolean),
-      note: r[9] || '', photos: []
-    }));
-
-    const remoteTotal = remoteEq.length + remoteIns.length;
-    const localTotal  = db.equipment.length + db.inspections.length;
-
-    if (remoteTotal > localTotal) {
-      db.equipment   = remoteEq;
-      db.inspections = remoteIns;
-      if (!db.customCatalog) db.customCatalog = [];
-      localStorage.setItem(DB_KEY, JSON.stringify(db));
-      toast('🔄 Date sincronizate din Google Sheets (' + remoteEq.length + ' echipamente, ' + remoteIns.length + ' inspecții).', 'info');
-      return true;
-    }
-    return false;
-  } catch(e) {
-    console.warn('[Sheets] Restore eșuat:', e.message);
-    return false;
-  }
-}
-
-// Debounced auto-sync după fiecare saveDB
-let _sheetsTimer = null;
-function _scheduleSheetsSync() {
-  if (!_driveSignedIn) return;
-  if (_sheetsTimer) clearTimeout(_sheetsTimer);
-  _sheetsTimer = setTimeout(sheetsSyncAll, 3000);
-}
 
 // ── Config persistence ────────────────────────────────
 function loadDriveConfig() {
@@ -6702,7 +6659,7 @@ function _maybeInitDrive() {
   _tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: DRIVE_CLIENT_ID,
     scope: DRIVE_SCOPES,
-    callback: async (tokenResponse) => {
+    callback: (tokenResponse) => {
       if (tokenResponse && tokenResponse.access_token) {
         _driveToken = tokenResponse.access_token;
         _driveSignedIn = true;
@@ -6712,12 +6669,6 @@ function _maybeInitDrive() {
         setDriveStatus('connected');
         updateDriveUI(true);
         toast('✅ Conectat la Google Drive!', 'success');
-        // Restore din Sheets la prima conectare
-        const restored = await sheetsRestoreOnLoad();
-        if (restored) { renderDashboard(); updateSidebarCounts(); }
-        else sheetsSyncAll(); // Dacă nu e nimic în Sheets, scrie ce avem local
-        // Actualizează link Sheets în UI
-        _updateSheetsLink();
       }
     },
     error_callback: (err) => {
@@ -6729,15 +6680,6 @@ function _maybeInitDrive() {
   });
   setDriveStatus('disconnected');
   updateDriveUI(false);
-}
-
-function _updateSheetsLink() {
-  const ssId = getSheetsId();
-  const el = document.getElementById('sheets-link');
-  if (el && ssId) {
-    el.href = 'https://docs.google.com/spreadsheets/d/' + ssId;
-    el.style.display = '';
-  }
 }
 
 function updateDriveUI(signedIn) {
@@ -7435,20 +7377,33 @@ async function driveUploadPdfBlob(pdfBase64, insId, date) {
 // ── Auto-upload trigger ───────────────────────────────
 async function driveAutoUploadAfterInspection(ins) {
   const cfg = loadDriveConfig();
-  if (!_driveSignedIn) return;
-  const promises = [];
-  // PDF salvat automat dacă Drive e conectat (indiferent de setare)
-  promises.push(
-    generateInspectionPDF(ins, true)
-      .then(b64 => { if (b64) return driveUploadPdfBlob(b64, ins.id, ins.date); })
-      .catch(e => console.warn('[Drive] PDF:', e.message))
-  );
-  if (cfg.autoCsvInsp)  promises.push(driveUploadCSV('inspectii'));
-  if (cfg.autoCsvEchip) promises.push(driveUploadCSV('echipamente'));
-  toast('⏫ Salvare în Drive + Sheets...', 'info');
-  await Promise.allSettled(promises);
-  // Sync Sheets după inspecție nouă
-  sheetsSyncAll();
+  const eq  = db.equipment.find(e => e.id === ins.equipId);
+
+  // 1. Salvează inspecția individual în Sheets prin GAS (imediat)
+  gasCall({
+    action: 'saveInspection',
+    inspection: JSON.stringify(ins),
+    equipName: eq ? eq.name : ''
+  }).catch(e => console.warn('[GAS] saveInspection:', e.message));
+
+  // 2. PDF — încearcă prin GAS (nu necesită login)
+  const pdfDate = ins.date ? ins.date.replace(/-/g, '') : new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const pdfFilename = 'PPE-INS-' + ins.id + '-' + pdfDate + '.pdf';
+  generateInspectionPDF(ins, true).then(b64 => {
+    if (!b64) return;
+    // Upload prin GAS (zero OAuth)
+    gasUploadPdf(b64, pdfFilename);
+    // Upload și prin Drive dacă e conectat
+    if (_driveSignedIn) driveUploadPdfBlob(b64, ins.id, ins.date);
+  }).catch(e => console.warn('[GAS] PDF gen:', e.message));
+
+  // 3. CSV dacă Drive e conectat
+  if (_driveSignedIn) {
+    if (cfg.autoCsvInsp)  driveUploadCSV('inspectii');
+    if (cfg.autoCsvEchip) driveUploadCSV('echipamente');
+  }
+
+  toast('⏫ Salvare în Sheets + Drive...', 'info');
 }
 
 // ── Log ───────────────────────────────────────────────
@@ -7482,9 +7437,39 @@ function clearDriveLog() {
 }
 
 // ── Init on page load ─────────────────────────────────
+function saveGasUrl() {
+  const url = (document.getElementById('gas-url-input')?.value || '').trim();
+  localStorage.setItem('ss_gas_url', url);
+  // Actualizează constanta runtime
+  window._gasUrlOverride = url;
+  _updateGasStatusUI();
+}
+
+function applyGasConfigToUI() {
+  const saved = localStorage.getItem('ss_gas_url') || '';
+  const el = document.getElementById('gas-url-input');
+  if (el) el.value = saved;
+  if (saved) window._gasUrlOverride = saved;
+  _updateGasStatusUI();
+}
+
+function _updateGasStatusUI() {
+  const url = localStorage.getItem('ss_gas_url') || '';
+  const icon = document.getElementById('gas-status-icon');
+  const text = document.getElementById('gas-status-text');
+  const active = url && !url.includes('INLOCUIESTE');
+  if (icon) { icon.textContent = active ? '✅' : '⚪'; icon.style.color = active ? 'var(--green)' : 'var(--text3)'; }
+  if (text) { text.textContent = active ? 'Activ — sync automat în Sheets' : 'Neconfigurat — introdu URL-ul Apps Script'; text.style.color = active ? 'var(--green)' : 'var(--text3)'; }
+}
+
 function initDriveOnPageLoad() {
   applyDriveConfigToUI();
-  // GIS and GAPI load async — _maybeInitDrive() called by each when ready
+  applyGasConfigToUI();
+  // Restore din Sheets la pornire (fără OAuth, fără popup)
+  gasRestoreOnLoad().then(restored => {
+    if (restored) { renderDashboard(); updateSidebarCounts(); }
+  });
+  // GIS și GAPI se încarcă async — _maybeInitDrive() e apelat când sunt gata
 }
 
 // ═══════════════════════════════════════════════════════
