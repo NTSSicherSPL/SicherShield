@@ -24,8 +24,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async defer onload="gisLoaded()"></script>
-<script src="https://apis.google.com/js/api.js" async defer onload="gapiLoaded()"></script>
 <script>
   // ── Google Apps Script URL — ZERO OAuth, zero popup ──────────────────
   // Înlocuiește cu URL-ul generat după deployment în script.google.com
@@ -2026,404 +2024,76 @@ textarea { resize: vertical; min-height: 80px; }
     <div class="page" id="page-drive-settings">
       <div class="page-header">
         <div>
-          <div class="page-title">Setări Integrări</div>
-          <div class="page-sub">Google Drive · NAS Synology · GitHub Pages · Jurnal</div>
+          <div class="page-title">Integrări Cloud</div>
+          <div class="page-sub">Google Sheets · Google Drive · Jurnal</div>
         </div>
       </div>
 
-      <!-- TAB BAR -->
-      <div class="settings-tabs" id="settings-tab-bar">
-        <button class="settings-tab tab-gdrive active" onclick="switchSettingsTab('gdrive', this)">
-          <span class="tab-icon">🔵</span> Google Drive
-          <span class="tab-badge" id="tab-gdrive-badge" style="display:none">ON</span>
-        </button>
-        <button class="settings-tab tab-synology" onclick="switchSettingsTab('synology', this)">
-          <span class="tab-icon">🖥️</span> NAS Synology
-        </button>
-        <button class="settings-tab tab-github" onclick="switchSettingsTab('github', this)">
-          <span class="tab-icon">🐙</span> GitHub
-        </button>
-        <button class="settings-tab tab-log" onclick="switchSettingsTab('log', this)">
-          <span class="tab-icon">📜</span> Jurnal
-          <span class="tab-badge" id="tab-log-badge" style="display:none;background:var(--accent)">!</span>
-        </button>
-      </div>
+      <!-- elemente ascunse pentru compatibilitate JS -->
+      <div id="settings-tab-bar" style="display:none"></div>
+      <div id="panel-gdrive" style="display:none"></div>
+      <div id="panel-synology" style="display:none"></div>
+      <div id="panel-github" style="display:none"></div>
+      <div id="drive-status-banner" style="display:none"></div>
+      <div id="tab-gdrive-badge" style="display:none"></div>
+      <div id="tab-log-badge" style="display:none"></div>
+      <span id="drive-auth-status" style="display:none"></span>
 
-      <!-- ══ TAB: GOOGLE DRIVE ══ -->
-      <div class="settings-panel active" id="panel-gdrive">
+      <div style="display:flex;flex-direction:column;gap:16px;padding:16px">
 
-        <!-- Status banner -->
-        <div id="drive-status-banner" style="display:none;margin-bottom:16px;padding:12px 16px;border-radius:8px;font-size:13px;align-items:center;gap:10px"></div>
-
-        <!-- Auth card -->
-        <div class="card">
-          <div class="card-title">🔑 Cont Google</div>
-          <div style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:18px">
-            <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px">
-              SicherShield foloseste <strong>Google Drive API v3</strong>.<br>
-              Fisierele se salveaza in folderul <code style="background:var(--bg);padding:1px 6px;border-radius:3px;font-family:var(--font-m)">SicherShield/</code> din Drive-ul tau.
-            </div>
-            <div id="drive-auth-status" style="font-size:13px;color:var(--text3);font-family:var(--font-m);margin-bottom:14px">&#x23F3; Se initializeaza...</div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <button id="btn-drive-signin" onclick="driveSignIn()" style="display:none;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:4px;padding:10px 20px;font-family:Roboto,Arial,sans-serif;font-size:14px;font-weight:500;cursor:pointer;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.15)">
-                <svg width="18" height="18" viewBox="0 0 24 24" style="vertical-align:middle;margin-right:8px"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                Conecteaza cu Google
-              </button>
-              <button class="btn btn-danger btn-sm" id="btn-drive-signout" onclick="driveSignOut()" style="display:none">&#x1F513; Deconecteaza</button>
-            </div>
-          </div>
-          <div class="form-group" style="margin-bottom:6px">
-            <label class="form-label">Folder Drive destinatie</label>
-            <input type="text" id="cfg-folder-name" placeholder="SicherShield" value="SicherShield" oninput="saveDriveConfig()" />
-          </div>
-        </div>
-
-        <!-- Google Sheets / GAS card -->
+        <!-- STATUS CONEXIUNE -->
         <div class="card" style="border-color:rgba(52,211,153,.35)">
-          <div class="card-title" style="color:var(--green)">📊 Google Sheets — Sincronizare automată</div>
-          <div style="font-size:13px;color:var(--text3);line-height:1.8;margin-bottom:14px">
-            Date sincronizate automat în Google Sheets de pe <strong style="color:var(--text)">orice dispozitiv</strong>, fără login, fără popup — prin Google Apps Script.
-          </div>
+          <div class="card-title" style="color:var(--green)">📡 Status conexiune</div>
 
-          <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px;margin-bottom:14px">
-            <span id="gas-status-icon" style="font-size:22px">⚪</span>
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--s3);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+            <span id="gas-status-icon" style="font-size:28px">⚪</span>
             <div style="flex:1">
-              <div id="gas-status-text" style="font-size:13px;font-weight:600;color:var(--text3)">Neconfigurat</div>
-              <div style="font-size:12px;color:var(--text3);margin-top:2px">Ultimul sync: <span id="gas-last-sync" style="font-family:var(--font-m)">—</span></div>
+              <div id="gas-status-text" style="font-size:14px;font-weight:600;color:var(--text3)">Se verifică...</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:3px">Ultimul sync: <span id="gas-last-sync" style="font-family:var(--font-m)">—</span></div>
             </div>
-            <button class="btn btn-sec btn-sm" onclick="gasSyncAll().then(()=>toast('✅ Sync OK!','success'))">🔄 Sync acum</button>
           </div>
 
-          <div class="form-group" style="margin-bottom:10px">
-            <label class="form-label">URL Google Apps Script</label>
-            <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:var(--font-m);font-size:12px" oninput="saveGasUrl()">
-            <div style="font-size:11px;color:var(--text3);margin-top:4px">script.google.com → Deploy → Web app → copiază URL-ul</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <div style="padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px;text-align:center">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">ECHIPAMENTE</div>
+              <div style="font-size:22px;font-weight:700;color:var(--text)" id="gas-eq-count">—</div>
+            </div>
+            <div style="padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px;text-align:center">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:4px">INSPECȚII</div>
+              <div style="font-size:22px;font-weight:700;color:var(--text)" id="gas-ins-count">—</div>
+            </div>
           </div>
 
-          <div style="padding:10px 14px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:8px;font-size:12px;color:var(--green);line-height:1.7;margin-bottom:10px">
-            ✅ <strong>PDF-uri inspecții</strong> salvate automat în Drive/SicherShield/PDF/<br>
-            ✅ <strong>Echipamente + Inspecții</strong> sincronizate live în Spreadsheet
-          </div>
-
-          <div style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text3);line-height:1.8">
-            <strong style="color:var(--text)">Instalare (5 min):</strong><br>
-            1. script.google.com → New project → copiază <strong>SicherShield_GAS_Code.gs</strong><br>
-            2. Schimbă <code style="background:var(--bg);padding:1px 4px;border-radius:3px;font-family:var(--font-m)">SPREADSHEET_ID</code> cu ID-ul foii tale<br>
-            3. Deploy → New deployment → Web app → Anyone → copiază URL<br>
-            4. Lipește URL-ul în câmpul de mai sus
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-primary" style="flex:1" onclick="gasTestConnection()">🔌 Testează conexiunea</button>
+            <button class="btn btn-sec" style="flex:1" onclick="gasSyncAll().then(()=>toast('✅ Sync manual OK!','success'))">🔄 Sync manual</button>
           </div>
         </div>
 
-        <!-- Auto-save card -->
+        <!-- JURNAL -->
         <div class="card">
-          <div class="card-title">⚙️ Salvare automată în Drive</div>
-          <div style="display:flex;flex-direction:column;gap:16px">
-
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <input type="checkbox" id="cfg-auto-pdf" style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent);flex-shrink:0" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">📄 PDF inspecție → Drive</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:3px">Salvează automat PDF-ul PPE checklist după fiecare inspecție salvată</div>
-              </div>
-            </label>
-
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <input type="checkbox" id="cfg-auto-csv-insp" style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent);flex-shrink:0" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">📋 CSV Inspecții → Drive</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:3px">Actualizează fișierul CSV după fiecare inspecție nouă</div>
-              </div>
-            </label>
-
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <input type="checkbox" id="cfg-auto-csv-echip" style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent);flex-shrink:0" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">📦 CSV Echipamente → Drive</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:3px">Actualizează inventarul la fiecare echipament adăugat sau modificat</div>
-              </div>
-            </label>
-
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <input type="checkbox" id="cfg-subfolder" checked style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent);flex-shrink:0" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">📁 Subfoldere An / Lună</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:3px">Organizare automată: <code style="font-family:var(--font-m);font-size:11px">SicherShield/2025/05/PPE_INS-xxx.pdf</code></div>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- Quick upload card -->
-        <div class="card">
-          <div class="card-title">⬆️ Upload manual acum</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <button class="btn btn-sec" onclick="driveUploadCSV('inspectii')" style="justify-content:center">
-              <span>☁</span> CSV Inspecții
-            </button>
-            <button class="btn btn-sec" onclick="driveUploadCSV('echipamente')" style="justify-content:center">
-              <span>☁</span> CSV Echipamente
-            </button>
-            <button class="btn btn-sec" onclick="driveUploadJSON()" style="justify-content:center;grid-column:1/-1">
-              <span>☁</span> Backup JSON complet
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ══ TAB: NAS SYNOLOGY ══ -->
-      <div class="settings-panel" id="panel-synology">
-
-        <!-- Flux diagram card -->
-        <div class="card" style="border-color:rgba(96,165,250,.3)">
-          <div class="card-title" style="color:var(--blue)">🔄 Flux date recomandat</div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:16px 0;font-size:13px;font-weight:600;color:var(--text2)">
-            <div style="text-align:center;padding:10px 16px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="font-size:20px;margin-bottom:4px">💻</div>
-              <div>SicherShield</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">browser</div>
-            </div>
-            <div style="color:var(--accent);font-size:20px">→</div>
-            <div style="text-align:center;padding:10px 16px;background:var(--s3);border:1px solid rgba(66,133,244,.3);border-radius:8px">
-              <div style="font-size:20px;margin-bottom:4px">🔵</div>
-              <div>Google Drive</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">cloud storage</div>
-            </div>
-            <div style="color:var(--accent);font-size:20px">→</div>
-            <div style="text-align:center;padding:10px 16px;background:var(--s3);border:1px solid rgba(96,165,250,.3);border-radius:8px">
-              <div style="font-size:20px;margin-bottom:4px">🖥️</div>
-              <div>NAS Synology</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">arhivă locală</div>
-            </div>
-          </div>
-          <div style="font-size:12px;color:var(--text3);text-align:center;line-height:1.6">
-            Cloud Sync preia automat fișierele din Drive și le salvează pe NAS în câteva secunde.
-          </div>
-        </div>
-
-        <!-- Setup steps card -->
-        <div class="card">
-          <div class="card-title">🖥️ Configurare Cloud Sync</div>
-          <div style="display:flex;flex-direction:column;gap:12px">
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-weight:700;font-size:15px;flex-shrink:0;color:#fff">1</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Instalează Cloud Sync</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">DSM → <strong style="color:var(--text2)">Package Center</strong> → caută „Cloud Sync" → instalează gratuit</div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-weight:700;font-size:15px;flex-shrink:0;color:#fff">2</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Conectează Google Drive</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">Cloud Sync → <strong style="color:var(--text2)">+ Adaugă</strong> → <strong style="color:var(--text2)">Google Drive</strong> → autorizează cu același cont Google</div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-weight:700;font-size:15px;flex-shrink:0;color:#fff">3</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Configurează task sincronizare</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  Folder Cloud Drive: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">/SicherShield</code><br>
-                  Folder NAS local: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">/volume1/SicherShield</code><br>
-                  Direcție: <strong style="color:var(--green)">unidirecțional Download (Drive → NAS)</strong>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:28px;height:28px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-weight:700;font-size:15px;flex-shrink:0;color:#fff">4</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Activează sincronizarea</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">Apasă <strong style="color:var(--text2)">Start</strong> — de acum orice fișier încărcat în Drive apare automat pe NAS în 10–60 secunde</div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Settings card -->
-        <div class="card">
-          <div class="card-title">⚙️ Preferințe sincronizare</div>
-          <div style="display:flex;flex-direction:column;gap:14px">
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
-              <input type="checkbox" id="cfg-nas-notify" style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent)" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">Notificări DSM la fișier nou</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:2px">Activează din DSM → Notification Center → Cloud Sync events</div>
-              </div>
-            </label>
-            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer">
-              <input type="checkbox" id="cfg-nas-versioning" style="margin-top:2px;width:16px;height:16px;accent-color:var(--accent)" oninput="saveDriveConfig()">
-              <div>
-                <div style="font-size:14px;color:var(--text);font-weight:500">Versionare fișiere pe NAS</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:2px">Activează din DSM → File Station → Proprietăți folder → Enable version history</div>
-              </div>
-            </label>
-          </div>
-          <div style="margin-top:16px;padding:10px 14px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:6px;font-size:12px;color:var(--green);line-height:1.7">
-            ✅ <strong>Recomandat:</strong> Sync unidirecțional Drive → NAS. Drive = sursă de adevăr, NAS = arhivă locală redundantă. Nu edita fișierele direct pe NAS.
-          </div>
-        </div>
-
-        <!-- DSM access card -->
-        <div class="card">
-          <div class="card-title">🌐 Acces rapid DSM</div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div class="form-group" style="margin-bottom:0">
-              <label class="form-label">Adresă DSM (IP sau QuickConnect)</label>
-              <div style="display:flex;gap:8px;margin-top:6px">
-                <input type="text" id="cfg-nas-url" placeholder="http://192.168.1.100:5000 sau QuickConnect ID" oninput="saveDriveConfig()" style="flex:1">
-                <button class="btn btn-sec btn-sm" onclick="openNasDSM()" style="flex-shrink:0;white-space:nowrap">🌐 Deschide DSM</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-
-      <!-- ══ TAB: GITHUB ══ -->
-      <div class="settings-panel" id="panel-github">
-
-        <div class="card" style="border-color:rgba(255,255,255,.15)">
-          <div class="card-title">🐙 Publicare pe GitHub Pages</div>
-          <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px">
-            GitHub Pages găzduiește SicherShield gratuit pe HTTPS — necesar pentru NFC, Google Drive API și fonturi.
-            Fișierul HTML se încarcă direct, fără build tools.
-          </p>
-
-          <div style="display:flex;flex-direction:column;gap:10px">
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">1</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Creează cont și repository GitHub</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  Mergi la <a href="https://github.com" target="_blank" style="color:var(--blue)">github.com</a> → <strong style="color:var(--text2)">New repository</strong><br>
-                  Nume: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">sichershield</code> · Visibility: <strong style="color:var(--text2)">Public</strong>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">2</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Încarcă fișierul SicherShield.html</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  În repository → <strong style="color:var(--text2)">Add file → Upload files</strong><br>
-                  Redenumește fișierul în <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">index.html</code> înainte de upload
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">3</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Activează GitHub Pages</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  Repository → <strong style="color:var(--text2)">Settings → Pages</strong><br>
-                  Source: <strong style="color:var(--text2)">Deploy from a branch</strong> · Branch: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">main</code> · Folder: <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">/(root)</code>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">4</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">URL-ul tău HTTPS</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  După ~2 minute aplicația e disponibilă la:<br>
-                  <code style="background:var(--bg);padding:2px 8px;border-radius:3px;font-family:var(--font-m);color:var(--green)">https://username.github.io/sichershield/</code><br>
-                  Adaugă acest URL în Google Cloud Console → Authorized JS origins (pentru Drive API)
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--s3);border:1px solid var(--border);border-radius:8px">
-              <div style="width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;color:#fff">5</div>
-              <div>
-                <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Update fișier (pentru versiuni noi)</div>
-                <div style="font-size:12px;color:var(--text3);line-height:1.6">
-                  Repository → click pe <code style="background:var(--bg);padding:1px 5px;border-radius:3px;font-family:var(--font-m)">index.html</code> → <strong style="color:var(--text2)">✏️ Edit (creion)</strong> → <em>sau</em><br>
-                  <strong style="color:var(--text2)">Add file → Upload files</strong> → suprascrie fișierul → <strong style="color:var(--text2)">Commit changes</strong><br>
-                  GitHub Pages se actualizează automat în ~60 secunde
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🔄 Flux complet recomandat</div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:16px 0;font-size:12px;font-weight:600;color:var(--text2)">
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid var(--border);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">💻</div>
-              <div>Editezi</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">Claude AI</div>
-            </div>
-            <div style="color:var(--accent);font-size:18px">→</div>
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid rgba(255,255,255,.15);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">🐙</div>
-              <div>GitHub Pages</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">HTTPS hosting</div>
-            </div>
-            <div style="color:var(--accent);font-size:18px">→</div>
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid rgba(66,133,244,.3);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">🔵</div>
-              <div>Google Drive</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">rapoarte + PDF</div>
-            </div>
-            <div style="color:var(--accent);font-size:18px">→</div>
-            <div style="text-align:center;padding:8px 12px;background:var(--s3);border:1px solid rgba(96,165,250,.3);border-radius:8px;min-width:90px">
-              <div style="font-size:18px;margin-bottom:3px">🖥️</div>
-              <div>NAS Synology</div>
-              <div style="font-size:10px;color:var(--text3);font-family:var(--font-m)">arhivă locală</div>
-            </div>
-          </div>
-          <div style="padding:10px 14px;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:6px;font-size:12px;color:var(--green);line-height:1.7;margin-top:8px">
-            ✅ <strong>Date utilizator</strong> (echipamente, inspecții, fotografii) se salvează în <strong>localStorage</strong> al browserului — nu pe GitHub. GitHub găzduiește doar codul aplicației.
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">⚙️ URL aplicație</div>
-          <div class="form-group">
-            <label class="form-label">URL-ul tău GitHub Pages (pentru NFC și Drive API)</label>
-            <div style="display:flex;gap:8px;margin-top:6px">
-              <input type="text" id="cfg-app-url" placeholder="https://username.github.io/sichershield/" oninput="saveDriveConfig()" style="flex:1">
-              <button class="btn btn-sec btn-sm" onclick="const u=document.getElementById('cfg-app-url').value;if(u)window.open(u,'_blank')" style="flex-shrink:0">🔗 Test</button>
-            </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:5px">Folosit la scrierea tag-urilor NFC — tag-ul va conține acest URL + ?eq=ID_echipament</div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ══ TAB: JURNAL ══ -->
-      <div class="settings-panel" id="panel-log">
-
-        <div class="card">
-          <div class="card-title">📜 Jurnal upload-uri Drive</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div class="card-title">📜 Jurnal sincronizări &amp; upload-uri</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
             <div style="font-size:12px;color:var(--text3);font-family:var(--font-m)" id="log-summary">—</div>
-            <button class="btn btn-ghost btn-xs" onclick="clearDriveLog()">🗑 Șterge jurnal</button>
+            <button class="btn btn-ghost btn-xs" onclick="clearDriveLog()">🗑 Șterge</button>
           </div>
-          <div id="drive-upload-log" style="font-family:var(--font-m);font-size:11px;color:var(--text3);line-height:2;max-height:400px;overflow-y:auto">
-            <em style="color:var(--text3)">Niciun upload efectuat încă.</em>
+          <div id="drive-upload-log" style="font-family:var(--font-m);font-size:11px;color:var(--text3);line-height:2.2;max-height:400px;overflow-y:auto">
+            <em style="color:var(--text3)">Nicio activitate înregistrată.</em>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
+            <div class="stat green" style="padding:12px;text-align:center"><div class="stat-n" id="log-stat-ok" style="font-size:24px">0</div><div class="stat-l" style="font-size:10px">Sync OK</div></div>
+            <div class="stat red"   style="padding:12px;text-align:center"><div class="stat-n" id="log-stat-err" style="font-size:24px">0</div><div class="stat-l" style="font-size:10px">Erori</div></div>
+            <div class="stat blue"  style="padding:12px;text-align:center"><div class="stat-n" id="log-stat-total" style="font-size:24px">0</div><div class="stat-l" style="font-size:10px">Total</div></div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title">📊 Statistici activitate</div>
-          <div id="log-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
-            <div class="stat green" style="padding:14px"><div class="stat-n" id="log-stat-ok" style="font-size:28px">0</div><div class="stat-l">Upload-uri OK</div></div>
-            <div class="stat red"   style="padding:14px"><div class="stat-n" id="log-stat-err" style="font-size:28px">0</div><div class="stat-l">Erori</div></div>
-            <div class="stat blue"  style="padding:14px"><div class="stat-n" id="log-stat-total" style="font-size:28px">0</div><div class="stat-l">Total fișiere</div></div>
+        <!-- INFO -->
+        <div class="card" style="border-color:rgba(99,102,241,.25)">
+          <div class="card-title">ℹ️ Informații integrare</div>
+          <div style="font-size:13px;color:var(--text3);line-height:1.9">
+            <div style="margin-bottom:8px">📊 <strong style="color:var(--text)">Google Sheets</strong> — echipamente și inspecții sincronizate automat la fiecare salvare, de pe orice dispozitiv</div>
+            <div style="margin-bottom:8px">📄 <strong style="color:var(--text)">PDF inspecții</strong> — salvate automat în Google Drive → SicherShield/PDF/</div>
+            <div>🔄 <strong style="color:var(--text)">Sync automat</strong> — 3 secunde după fiecare modificare, fără nicio acțiune din partea ta</div>
           </div>
         </div>
 
@@ -4295,7 +3965,7 @@ function showPage(name) {
   if (name === 'catalog') renderCatalog();
   if (name === 'inspect-new') renderInspectForm(null);
   if (name === 'drive-settings') { applyDriveConfigToUI(); renderDriveLog(); }
-  if (name === 'reports') { setTimeout(()=>{ const b=document.getElementById('drive-banner'); if(b&&!_driveSignedIn&&loadDriveConfig().clientId) b.style.display='flex'; },100); }
+  // drive banner removed
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6532,19 +6202,7 @@ function addRecallToCatalogProduct(brand, model) {
 // SETTINGS TABS
 // ═══════════════════════════════════════════════════════
 
-function switchSettingsTab(tab, btn) {
-  // Deactivate all tabs and panels
-  document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.settings-panel').forEach(p => p.classList.remove('active'));
-
-  // Activate selected
-  if (btn) btn.classList.add('active');
-  const panel = document.getElementById('panel-' + tab);
-  if (panel) panel.classList.add('active');
-
-  // Update log stats when switching to log tab
-  if (tab === 'log') updateLogStats();
-}
+function switchSettingsTab(tab, btn) { /* tabs removed */ }
 
 function updateLogStats() {
   const log = loadDriveConfig().log || [];
@@ -6574,7 +6232,7 @@ function updateDriveBadge() {
   if (badge) {
     const cfg = loadDriveConfig();
     const anyAuto = cfg.autoPdf || cfg.autoCsvInsp || cfg.autoCsvEchip;
-    badge.style.display = (_driveSignedIn && anyAuto) ? '' : 'none';
+    // badge removed
     badge.textContent = 'ON';
   }
 }
@@ -6590,284 +6248,45 @@ function openNasDSM() {
 // GOOGLE DRIVE INTEGRATION — GIS (Google Identity Services)
 // ═══════════════════════════════════════════════════════
 
-const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
-let _gapiReady = false;
-let _gisReady  = false;
+// Drive OAuth removed
+let _gapiReady = false; let _gisReady = false;
 let _driveToken = null;
 let _driveSignedIn = false;
-let _driveFolderId = null;
-let _driveSubIds = {};
 
 // ── Config persistence ────────────────────────────────
-function loadDriveConfig() {
-  try { return JSON.parse(localStorage.getItem('ss_drive_cfg') || '{}'); } catch { return {}; }
-}
-function saveDriveConfig() {
-  const cfg = {
-    clientId:       DRIVE_CLIENT_ID,
-    folderName:     document.getElementById('cfg-folder-name')?.value.trim() || 'SicherShield',
-    autoPdf:        document.getElementById('cfg-auto-pdf')?.checked || false,
-    autoCsvInsp:    document.getElementById('cfg-auto-csv-insp')?.checked || false,
-    autoCsvEchip:   document.getElementById('cfg-auto-csv-echip')?.checked || false,
-    subfolder:      document.getElementById('cfg-subfolder')?.checked !== false,
-    nasUrl:         document.getElementById('cfg-nas-url')?.value.trim() || '',
-    appUrl:         document.getElementById('cfg-app-url')?.value.trim() || '',
-    nasNotify:      document.getElementById('cfg-nas-notify')?.checked || false,
-    nasVersioning:  document.getElementById('cfg-nas-versioning')?.checked || false,
-    log:            loadDriveConfig().log || []
-  };
-  localStorage.setItem('ss_drive_cfg', JSON.stringify(cfg));
-  updateDriveBadge();
-}
-function applyDriveConfigToUI() {
-  const cfg = loadDriveConfig();
-  const s = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
-  const c = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
-  s('cfg-folder-name',  cfg.folderName || 'SicherShield');
-  c('cfg-auto-pdf',     cfg.autoPdf);
-  c('cfg-auto-csv-insp',cfg.autoCsvInsp);
-  c('cfg-auto-csv-echip',cfg.autoCsvEchip);
-  c('cfg-subfolder',    cfg.subfolder !== false);
-  s('cfg-nas-url',      cfg.nasUrl || '');
-  s('cfg-app-url',      cfg.appUrl || '');
-  c('cfg-nas-notify',   cfg.nasNotify);
-  c('cfg-nas-versioning', cfg.nasVersioning);
-  renderDriveLog();
-  updateDriveBadge();
-  updateLogStats();
-}
-
-// ── GIS init ──────────────────────────────────────────
-let _tokenClient = null;
-
-function gisLoaded() {
-  _gisReady = true;
-  _maybeInitDrive();
-}
-
-function gapiLoaded() {
-  gapi.load('client', async () => {
-    await gapi.client.init({});
-    await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
-    _gapiReady = true;
-    _maybeInitDrive();
-  });
-}
-
-function _maybeInitDrive() {
-  if (!_gapiReady || !_gisReady) return;
-  _tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: DRIVE_CLIENT_ID,
-    scope: DRIVE_SCOPES,
-    callback: (tokenResponse) => {
-      if (tokenResponse && tokenResponse.access_token) {
-        _driveToken = tokenResponse.access_token;
-        _driveSignedIn = true;
-        _driveFolderId = null;
-        _driveSubIds = {};
-        gapi.client.setToken({ access_token: _driveToken });
-        setDriveStatus('connected');
-        updateDriveUI(true);
-        toast('✅ Conectat la Google Drive!', 'success');
-      }
-    },
-    error_callback: (err) => {
-      if (err.type !== 'popup_closed') {
-        setDriveStatus('error', err.type || 'Eroare autentificare');
-        toast('❌ Eroare Google: ' + (err.type || 'necunoscut'), 'error');
-      }
-    }
-  });
-  setDriveStatus('disconnected');
-  updateDriveUI(false);
-}
-
-function updateDriveUI(signedIn) {
-  const btnIn  = document.getElementById('btn-drive-signin');
-  const btnOut = document.getElementById('btn-drive-signout');
-  const badge  = document.getElementById('drive-status-badge');
-  const tabBadge = document.getElementById('tab-gdrive-badge');
-  if (btnIn)  { btnIn.style.display  = signedIn ? 'none' : 'inline-flex'; }
-  if (btnOut) { btnOut.style.display = signedIn ? '' : 'none'; }
-  if (badge)  { badge.style.display  = signedIn ? '' : 'none'; }
-  if (tabBadge) { tabBadge.style.display = signedIn ? '' : 'none'; }
-  updateDriveBadge();
-}
-
-function driveSignIn() {
-  if (!_tokenClient) {
-    toast('Se initializeaza... incearca din nou in 2 secunde.', 'error');
-    setTimeout(() => _maybeInitDrive(), 1500);
-    return;
-  }
-  // Request access token — opens Google popup
-  _tokenClient.requestAccessToken({ prompt: 'select_account' });
-}
-
-function driveSignOut() {
-  if (_driveToken) {
-    google.accounts.oauth2.revoke(_driveToken, () => {
-      _driveToken = null;
-      _driveSignedIn = false;
-      _driveFolderId = null;
-      _driveSubIds = {};
-      gapi.client.setToken(null);
-      setDriveStatus('disconnected');
-      updateDriveUI(false);
-      toast('Deconectat de la Google Drive.', 'info');
-    });
-  }
-}
-
-function setDriveStatus(state, msg) {
-  const el = document.getElementById('drive-auth-status');
-  const banner = document.getElementById('drive-banner') || document.getElementById('drive-status-banner');
-  const map = {
-    'connected':    ['✅ Conectat la Google Drive', 'rgba(74,222,128,.1)', 'var(--green)', '1px solid rgba(74,222,128,.25)'],
-    'disconnected': ['🔑 Neconectat — apasa butonul pentru a autoriza accesul', 'rgba(232,80,10,.08)', 'var(--accent)', '1px solid rgba(232,80,10,.2)'],
-    'no-client':    ['⚙️ Client ID lipsa', 'rgba(96,165,250,.08)', 'var(--blue)', '1px solid rgba(96,165,250,.2)'],
-    'error':        [`❌ Eroare: ${msg}`, 'rgba(248,113,113,.08)', 'var(--red)', '1px solid rgba(248,113,113,.2)'],
-    'uploading':    ['⏫ Se incarca in Drive…', 'rgba(251,191,36,.08)', 'var(--yellow)', '1px solid rgba(251,191,36,.2)'],
-  };
-  const [txt, bg, color, border] = map[state] || map['disconnected'];
-  if (el) { el.textContent = txt; el.style.color = color; }
-  if (banner) {
-    banner.style.cssText = `display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px;font-size:13px;background:${bg};border:${border};color:${color};margin-bottom:16px`;
-    banner.innerHTML = `<span>${txt}</span>`;
-    if (state === 'disconnected' || state === 'no-client') {
-      banner.innerHTML += `<button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="showPage('drive-settings')">⚙ Configurare</button>`;
-    }
-    banner.style.display = (state === 'connected') ? 'none' : 'flex';
-  }
-}
-
-// ── Folder management ─────────────────────────────────
-async function getOrCreateFolder(name, parentId) {
-  const q = parentId
-    ? `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`
-    : `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const res = await gapi.client.drive.files.list({ q, fields:'files(id,name)', pageSize:1 });
-  if (res.result.files.length) return res.result.files[0].id;
-  const created = await gapi.client.drive.files.create({
-    resource: { name, mimeType:'application/vnd.google-apps.folder', parents: parentId ? [parentId] : [] },
-    fields: 'id'
-  });
-  return created.result.id;
-}
-async function getDestFolderId() {
-  const cfg = loadDriveConfig();
-  if (!_driveFolderId) {
-    _driveFolderId = await getOrCreateFolder(cfg.folderName || 'SicherShield');
-  }
-  if (!cfg.subfolder) return _driveFolderId;
-  const now = new Date();
-  const yr = now.getFullYear().toString();
-  const mo = String(now.getMonth()+1).padStart(2,'0');
-  const key = yr + '/' + mo;
-  if (!_driveSubIds[key]) {
-    const yrId = await getOrCreateFolder(yr, _driveFolderId);
-    _driveSubIds[key] = await getOrCreateFolder(mo, yrId);
-  }
-  return _driveSubIds[key];
-}
-
-// ── Upload helpers ────────────────────────────────────
-async function uploadToDrive(fileName, mimeType, content, isBase64) {
-  if (!_driveSignedIn || !_driveToken) {
-    toast('Drive neconectat — conecteaza-te mai intai.', 'error');
-    setDriveStatus('disconnected');
-    return null;
-  }
-  setDriveStatus('uploading');
-  try {
-    const folderId = await getDestFolderId();
-    const q = `name='${fileName}' and '${folderId}' in parents and trashed=false`;
-    const existing = await gapi.client.drive.files.list({ q, fields:'files(id)', pageSize:1 });
-    const existId = existing.result.files[0]?.id || null;
-
-    const boundary = '-------sicher_boundary';
-    const meta = JSON.stringify({ name: fileName, parents: existId ? undefined : [folderId] });
-    let body;
-    if (isBase64) {
-      body = `--${boundary}
-Content-Type: application/json; charset=UTF-8
-
-${meta}
---${boundary}
-Content-Type: ${mimeType}
-Content-Transfer-Encoding: base64
-
-${content}
---${boundary}--`;
-    } else {
-      body = `--${boundary}
-Content-Type: application/json; charset=UTF-8
-
-${meta}
---${boundary}
-Content-Type: ${mimeType}
-
-${content}
---${boundary}--`;
-    }
-    const url = existId
-      ? `https://www.googleapis.com/upload/drive/v3/files/${existId}?uploadType=multipart`
-      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-    const method = existId ? 'PATCH' : 'POST';
-    const resp = await fetch(url, {
-      method,
-      headers: { 'Authorization': 'Bearer ' + _driveToken, 'Content-Type': `multipart/related; boundary="${boundary}"` },
-      body
-    });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const result = await resp.json();
-    setDriveStatus('connected');
-    addDriveLog(fileName, 'ok');
-    return result.id;
-  } catch(e) {
-    setDriveStatus('error', e.message);
-    addDriveLog(fileName, 'err: ' + e.message);
-    toast('❌ Eroare upload Drive: ' + e.message, 'error');
-    return null;
-  }
-}
-
-// ── Public upload functions ───────────────────────────
-async function driveUploadCSV(type) {
-  if (!_driveSignedIn) { toast('Conecteaza-te la Google Drive in Setari Cloud.', 'error'); showPage('drive-settings'); return; }
-  let csv, filename;
-  const d = new Date().toISOString().slice(0,10);
-  if (type === 'inspectii') {
-    const headers = ['ID Inspectie','ID Echipament','Echipament','Data','Inspector','Verdict','Observatii'];
-    const rows = db.inspections.map(i => {
-      const eq = db.equipment.find(e=>e.id===i.equipId);
-      return [i.id,i.equipId,eq?.name||'',i.date,i.inspector,i.verdict,i.note].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`);
-    });
-    csv = '\uFEFF' + [headers,...rows].map(r=>r.join(',')).join('\n');
-    filename = `sicher_inspectii_${d}.csv`;
-  } else {
-    const headers = ['ID','Nume','Tip','Serial','Producator','Model','Lot','Norma','Data cumparare','Data fabricatie','Durata viata maxima','Durata viata in lucru','Localitate','Proprietar','Status','Note'];
-    const rows = db.equipment.map(e => [e.id,e.name,e.type,e.serial,e.manufacturer,e.model,e.lot||'',e.norm,e.purchaseDate,e.manufactureDate,e.lifespan,e.workLifespan||'',e.location,e.owner,e.status,e.notes].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`));
-    csv = '\uFEFF' + [headers,...rows].map(r=>r.join(',')).join('\n');
-    filename = `sicher_echipamente_${d}.csv`;
-  }
-  const id = await uploadToDrive(filename, 'text/csv', csv, false);
-  if (id) toast(`☁ ${filename} salvat in Drive!`, 'success');
-}
-
-async function driveUploadJSON() {
-  if (!_driveSignedIn) { toast('Conecteaza-te la Google Drive in Setari Cloud.', 'error'); showPage('drive-settings'); return; }
-  const d = new Date().toISOString().slice(0,10);
-  const filename = `sicher_backup_${d}.json`;
-  const json = JSON.stringify(db, null, 2);
-  const id = await uploadToDrive(filename, 'application/json', json, false);
-  if (id) toast(`☁ Backup JSON salvat in Drive!`, 'success');
-}
+function loadDriveConfig() { return {}; }
 
 
-// ═══════════════════════════════════════════════════════
-// GENERATE INSPECTION PDF — SSH-PPE-CHK-02 (RO/DE/EN)
-// ═══════════════════════════════════════════════════════
+function saveDriveConfig() { }
+
+
+function applyDriveConfigToUI() { }
+
+
+function gisLoaded() { }
+
+
+function gapiLoaded() { }
+
+
+function _maybeInitDrive() { /* OAuth removed — sync prin GAS */ }
+function _updateSheetsLink() { }
+
+function updateDriveUI(signedIn) { }
+
+
+function driveSignIn() { toast('Sincronizare automată prin GAS — niciun login necesar.', 'info'); }
+
+
+function driveSignOut() { }
+
+
+function setDriveStatus(state, msg) { }
+
+async function driveUploadCSV(type) { }
+
+
+async function driveUploadJSON() { }
 
 async function generateInspectionPDF(ins, returnBase64 = false) {
   const { jsPDF } = window.jspdf;
@@ -7358,7 +6777,6 @@ async function generateInspectionPDF(ins, returnBase64 = false) {
   // ── Return or download ──────────────────────────────
   if (returnBase64) {
     const b64 = doc.output('datauristring').split(',')[1];
-    await driveUploadPdfBlob(b64, ins.id, ins.date);
     return b64;
   } else {
     const fname = `PPE_${ins.id}_${ins.date}_${(eq.name||'').replace(/\s+/g,'_')}.pdf`;
@@ -7367,12 +6785,8 @@ async function generateInspectionPDF(ins, returnBase64 = false) {
   }
 }
 
-async function driveUploadPdfBlob(pdfBase64, insId, date) {
-  const filename = `PPE_${insId}_${date}.pdf`;
-  const id = await uploadToDrive(filename, 'application/pdf', pdfBase64, true);
-  if (id) toast(`☁ PDF ${filename} salvat in Drive!`, 'success');
-  return id;
-}
+async function driveUploadPdfBlob(pdfBase64, insId, date) { }
+
 
 // ── Auto-upload trigger ───────────────────────────────
 async function driveAutoUploadAfterInspection(ins) {
@@ -7394,7 +6808,6 @@ async function driveAutoUploadAfterInspection(ins) {
     // Upload prin GAS (zero OAuth)
     gasUploadPdf(b64, pdfFilename);
     // Upload și prin Drive dacă e conectat
-    if (_driveSignedIn) driveUploadPdfBlob(b64, ins.id, ins.date);
   }).catch(e => console.warn('[GAS] PDF gen:', e.message));
 
   // 3. CSV dacă Drive e conectat
@@ -7440,26 +6853,53 @@ function clearDriveLog() {
 function saveGasUrl() {
   const url = (document.getElementById('gas-url-input')?.value || '').trim();
   localStorage.setItem('ss_gas_url', url);
-  // Actualizează constanta runtime
   window._gasUrlOverride = url;
   _updateGasStatusUI();
 }
 
 function applyGasConfigToUI() {
   const saved = localStorage.getItem('ss_gas_url') || '';
-  const el = document.getElementById('gas-url-input');
-  if (el) el.value = saved;
   if (saved) window._gasUrlOverride = saved;
   _updateGasStatusUI();
+  // Actualizează contoarele din DB local
+  const eq = document.getElementById('gas-eq-count');
+  const ins = document.getElementById('gas-ins-count');
+  if (eq) eq.textContent = db.equipment.length;
+  if (ins) ins.textContent = db.inspections.length;
 }
 
 function _updateGasStatusUI() {
-  const url = localStorage.getItem('ss_gas_url') || '';
+  const url = (window._gasUrlOverride || GAS_URL || '').trim();
   const icon = document.getElementById('gas-status-icon');
   const text = document.getElementById('gas-status-text');
   const active = url && !url.includes('INLOCUIESTE');
-  if (icon) { icon.textContent = active ? '✅' : '⚪'; icon.style.color = active ? 'var(--green)' : 'var(--text3)'; }
-  if (text) { text.textContent = active ? 'Activ — sync automat în Sheets' : 'Neconfigurat — introdu URL-ul Apps Script'; text.style.color = active ? 'var(--green)' : 'var(--text3)'; }
+  if (icon) { icon.textContent = active ? '🟢' : '🔴'; }
+  if (text) {
+    text.textContent = active ? 'Activ — sync automat în Google Sheets' : 'Neconectat';
+    text.style.color = active ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+async function gasTestConnection() {
+  const icon = document.getElementById('gas-status-icon');
+  const text = document.getElementById('gas-status-text');
+  if (icon) icon.textContent = '⏳';
+  if (text) { text.textContent = 'Se testează conexiunea...'; text.style.color = 'var(--text3)'; }
+  try {
+    const result = await gasCall({ action: 'ping' }, 10000);
+    if (result && result.ok) {
+      if (icon) icon.textContent = '🟢';
+      if (text) { text.textContent = '✅ Conexiune OK — ' + (result.message || 'GAS activ'); text.style.color = 'var(--green)'; }
+      toast('✅ GAS activ și conectat!', 'success');
+      addDriveLog('Test conexiune', 'ok');
+    } else {
+      throw new Error(result?.error || 'Răspuns invalid');
+    }
+  } catch(e) {
+    if (icon) icon.textContent = '🔴';
+    if (text) { text.textContent = '❌ Eroare: ' + e.message; text.style.color = 'var(--red)'; }
+    toast('❌ Test eșuat: ' + e.message, 'error');
+  }
 }
 
 function initDriveOnPageLoad() {
