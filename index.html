@@ -6463,10 +6463,56 @@ function driveSignOut() { }
 
 function setDriveStatus(state, msg) { }
 
-async function driveUploadCSV(type) { }
+async function driveUploadCSV(type) {
+  if (!_gasConfigured()) return;
+  try {
+    if (type === 'echipamente') {
+      const headers = ['ID','Nume','Tip','Serial','Producator','Model','Norma','Data cumparare','Data fabricatie','Durata viata','Durata lucru','Lot','Status','Locatie','Proprietar','Note'];
+      const rows = db.equipment.map(e => [
+        e.id, e.name, e.type, e.serial||'', e.manufacturer||'', e.model||'',
+        e.norm||'', e.purchaseDate||'', e.manufactureDate||'',
+        e.lifespan||'', e.workLifespan||'', e.lot||'',
+        e.status||'ok', e.location||'', e.owner||'', e.notes||''
+      ].map(v => '"' + String(v||'').replace(/"/g,'""') + '"'));
+      const csv = '\uFEFF' + [headers, ...rows].map(r => r.join(',')).join('\n');
+      const b64 = btoa(unescape(encodeURIComponent(csv)));
+      const date = new Date().toISOString().slice(0,10);
+      await gasCallPost({ action: 'saveJson', jsonData: null, csvBase64: b64,
+        filename: 'echipamente_' + date + '.csv', folder: 'Echipamente' });
+    } else if (type === 'inspectii') {
+      const headers = ['ID Inspectie','ID Echipament','Echipament','Data','Inspector','Nr.Cert','Verdict','Observatii'];
+      const rows = db.inspections.map(i => {
+        const eq = db.equipment.find(e => e.id === i.equipId);
+        return [i.id, i.equipId, eq?.name||'', i.date||'', i.inspector||'',
+                i.certNr||'', i.verdict||'', i.note||'']
+          .map(v => '"' + String(v||'').replace(/"/g,'""') + '"');
+      });
+      const csv = '\uFEFF' + [headers, ...rows].map(r => r.join(',')).join('\n');
+      const b64 = btoa(unescape(encodeURIComponent(csv)));
+      const date = new Date().toISOString().slice(0,10);
+      await gasCallPost({ action: 'saveJson', jsonData: null, csvBase64: b64,
+        filename: 'inspectii_' + date + '.csv', folder: 'Echipamente' });
+    }
+    addDriveLog('CSV ' + type, 'ok');
+  } catch(e) {
+    console.warn('[GAS] driveUploadCSV:', e.message);
+  }
+}
 
-
-async function driveUploadJSON() { }
+async function driveUploadJSON() {
+  if (!_gasConfigured()) return;
+  try {
+    const jsonStr = JSON.stringify(db, null, 2);
+    const result = await gasCallPost({ action: 'saveJson', jsonData: jsonStr });
+    if (result && result.ok) {
+      addDriveLog(result.filename || 'backup.json', 'ok');
+      return result;
+    }
+  } catch(e) {
+    console.warn('[GAS] driveUploadJSON:', e.message);
+  }
+  return null;
+}
 
 async function generateInspectionPDF(ins, returnBase64 = false) {
   const { jsPDF } = window.jspdf;
@@ -6985,20 +7031,20 @@ async function driveAutoUploadAfterInspection(ins) {
     equipName: eq ? eq.name : ''
   }).catch(e => console.warn('[GAS] saveInspection:', e.message));
 
-  // 2. PDF — încearcă prin GAS (nu necesită login)
+  // 2. PDF — upload prin GAS în /PDF/ (flat) + folder lunar automat
   const pdfDate = ins.date ? ins.date.replace(/-/g, '') : new Date().toISOString().slice(0,10).replace(/-/g,'');
   const pdfFilename = 'PPE-INS-' + ins.id + '-' + pdfDate + '.pdf';
   generateInspectionPDF(ins, true).then(b64 => {
     if (!b64) return;
-    // Upload prin GAS (zero OAuth)
     gasUploadPdf(b64, pdfFilename);
-    // Upload și prin Drive dacă e conectat
   }).catch(e => console.warn('[GAS] PDF gen:', e.message));
 
-  // 3. CSV dacă Drive e conectat
-  if (_driveSignedIn) {
-    if (cfg.autoCsvInsp)  driveUploadCSV('inspectii');
-    if (cfg.autoCsvEchip) driveUploadCSV('echipamente');
+  // 3. Backup JSON complet al DB (include echipamente + inspectii + customCatalog/recalls)
+  //    Se trimite dupa 2s pentru a da timp PDF-ului sa porneasca
+  if (_gasConfigured()) {
+    setTimeout(() => {
+      driveUploadJSON().catch(e => console.warn('[GAS] JSON backup:', e.message));
+    }, 2000);
   }
 
   toast('⏫ Salvare în Sheets + Drive...', 'info');
@@ -7097,7 +7143,24 @@ function initDriveOnPageLoad() {
   gasRestoreOnLoad().then(restored => {
     if (restored) { renderDashboard(); updateSidebarCounts(); }
   });
-  // GIS și GAPI se încarcă async — _maybeInitDrive() e apelat când sunt gata
+  // Backup JSON zilnic la pornire (max o data la 23h)
+  _maybeDailyJsonBackup();
+}
+
+function _maybeDailyJsonBackup() {
+  if (!_gasConfigured()) return;
+  const lastBackup = localStorage.getItem('ss_last_json_backup') || '';
+  const today = new Date().toISOString().slice(0, 10);
+  if (lastBackup === today) return; // deja facut azi
+  // Asteapta 5s dupa pornire ca sync-ul sa se termine
+  setTimeout(() => {
+    driveUploadJSON().then(r => {
+      if (r && r.ok) {
+        localStorage.setItem('ss_last_json_backup', today);
+        console.log('[GAS] Backup JSON zilnic salvat:', r.filename);
+      }
+    }).catch(() => {});
+  }, 5000);
 }
 
 // ═══════════════════════════════════════════════════════
