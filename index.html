@@ -2261,7 +2261,21 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <button class="cert-tab" onclick="goPage('hist')" id="tn-hist">📋 Verlauf / History</button>
     <button class="cert-tab" onclick="goPage('set')" id="tn-set">⚙️ Einstellungen / Settings</button>
   </div>
-  <div class="topbar-right">
+  <div class="topbar-right" style="display:flex;align-items:center;gap:10px;">
+    <!-- GAS connection status -->
+    <div id="cert-sync-status" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);font-family:var(--font-m);cursor:default;" title="Status conectare Spreadsheet">
+      <span id="cert-sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;"></span>
+      <span id="cert-sync-label" style="white-space:nowrap;">—</span>
+    </div>
+    <!-- Refresh button -->
+    <button
+      id="cert-refresh-btn"
+      onclick="certRefreshSync()"
+      title="Refresh / Sincronizare Spreadsheet"
+      style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:7px 13px;border-radius:7px;font-size:12px;font-weight:600;font-family:var(--font-b);cursor:pointer;transition:all .15s;white-space:nowrap;"
+      onmouseover="this.style.background='rgba(240,90,26,.15)';this.style.borderColor='rgba(240,90,26,.5)';this.style.color='var(--accent)'"
+      onmouseout="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,255,255,.15)';this.style.color='var(--text2)'"
+    >🔄 Refresh</button>
     <button
       onclick="switchModule('landing')"
       title="Pagina principală"
@@ -2553,9 +2567,23 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <span style="color:var(--text3); font-size:14px">🔍</span>
     <input type="text" id="global-search" placeholder="Caută echipament, serial, tip…" oninput="globalSearch(this.value)">
   </div>
-  <div class="topbar-right">
+  <div class="topbar-right" style="display:flex;align-items:center;gap:10px;">
     <button class="btn btn-ghost btn-sm" onclick="openMobileSearch()"
       style="display:none" id="mobile-search-btn" title="Caută">🔍</button>
+    <!-- GAS connection status -->
+    <div id="ppe-sync-status" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);font-family:var(--font-m);cursor:default;" title="Status conectare Spreadsheet">
+      <span id="ppe-sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;"></span>
+      <span id="ppe-sync-label" style="white-space:nowrap;">—</span>
+    </div>
+    <!-- Refresh button -->
+    <button
+      id="ppe-refresh-btn"
+      onclick="ppeRefreshSync()"
+      title="Refresh / Sincronizare Spreadsheet"
+      style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:7px 13px;border-radius:7px;font-size:12px;font-weight:600;font-family:var(--font-b);cursor:pointer;transition:all .15s;white-space:nowrap;"
+      onmouseover="this.style.background='rgba(240,90,26,.15)';this.style.borderColor='rgba(240,90,26,.5)';this.style.color='var(--accent)'"
+      onmouseout="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,255,255,.15)';this.style.color='var(--text2)'"
+    >🔄 Refresh</button>
     <button
       onclick="switchModule('landing')"
       title="Pagina principală"
@@ -3113,10 +3141,14 @@ function switchModule(mod) {
   localStorage.setItem('ss_last_module', mod);
 }
 
-// Auto-open last used module (skip landing if user has preference)
+// Auto-open last used module on refresh (skip landing if user was already in a module)
 (function() {
   const last = localStorage.getItem('ss_last_module');
-  // Don't auto-open — always show landing on fresh load
+  if (last && last !== 'landing') {
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() { if (typeof switchModule === 'function') switchModule(last); }, 50);
+    });
+  }
 })();
 </script>
 
@@ -3140,7 +3172,7 @@ async function certGasCall(params) {
     const text = await r.text();
     const json = text.replace(/^cb\(/, '').replace(/\);?$/, '');
     return JSON.parse(json);
-  } catch(e) { console.warn('[CertGAS]', e.message); return null; }
+  } catch(e) { _gasWarn('[CertGAS]', e); return null; }
 }
 
 async function certSaveToGAS(lang, pdfB64) {
@@ -3176,7 +3208,7 @@ async function certSaveToGAS(lang, pdfB64) {
       console.log('[CertGAS] Certificate saved:', no);
       toast('✓ Certificate saved to Google Drive & Sheets', 'green');
     }
-  } catch(e) { console.warn('[CertGAS] Save failed:', e.message); }
+  } catch(e) { _gasWarn('[CertGAS] Save failed:', e); }
 }
 
 function certToast(msg, type) {
@@ -5390,8 +5422,7 @@ let db = { equipment: [], inspections: [] };
 async function gasCall(params, timeoutMs = 15000) {
   const url = (window._gasUrlOverride || localStorage.getItem('ss_gas_url') || GAS_URL || window._GAS_URL || '').trim();
   if (!url || url.includes('INLOCUIESTE')) {
-    console.warn('[GAS] URL nesetat — skip');
-    return null;
+    return null; // silentios — URL nesetat
   }
   const timeoutPromise = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('GAS timeout')), timeoutMs)
@@ -5407,7 +5438,8 @@ async function gasCall(params, timeoutMs = 15000) {
     if (!txt || !txt.trim()) throw new Error('Răspuns gol GAS');
     return JSON.parse(txt);
   } catch (e) {
-    if (e.name === 'AbortError') throw new Error('Timeout GAS (15s)');
+    // Failed to fetch = rețea indisponibilă — nu e eroare de logat ca warning
+    if (e.name === 'AbortError' || e.name === 'TypeError') throw e;
     throw e;
   }
 }
@@ -5444,6 +5476,12 @@ function _gasConfigured() {
   const u = _activeGasUrl();
   return !!(u && !u.includes('INLOCUIESTE'));
 }
+// Warn helper: suprima erorile de retea (Failed to fetch, timeout, CORS) — sunt normale cand offline
+function _gasWarn(label, e) {
+  const msg = (e && e.message) || String(e);
+  const isNetworkErr = e instanceof TypeError || /failed to fetch|networkerror|timeout|load failed/i.test(msg);
+  if (!isNetworkErr) console.warn(label, msg);
+}
 function _scheduleGasSync() {
   if (!_gasConfigured()) return;
   if (_gasTimer) clearTimeout(_gasTimer);
@@ -5451,8 +5489,8 @@ function _scheduleGasSync() {
 }
 
 async function gasSyncAll() {
+  if (!_gasConfigured()) return;
   try {
-    // Trimite db fara photos (photos nu se salveaza in Sheets, sunt prea mari)
     const dbForSync = {
       equipment:   db.equipment,
       inspections: db.inspections.map(i => Object.assign({}, i, { photos: [] }))
@@ -5464,7 +5502,7 @@ async function gasSyncAll() {
       console.log('[GAS] Sync OK —', result.equipment, 'echipamente,', result.inspections, 'inspecții');
     }
   } catch (e) {
-    console.warn('[GAS] Sync eșuat:', e.message);
+    _gasWarn('[GAS] Sync eșuat:', e);
   }
 }
 
@@ -5478,12 +5516,9 @@ async function gasRestoreOnLoad() {
     const remoteEq  = result.equipment  || [];
     const remoteIns = result.inspections || [];
 
-    // Daca ambele sunt goale — nu face nimic
     if (remoteEq.length === 0 && remoteIns.length === 0 &&
         db.equipment.length === 0 && db.inspections.length === 0) return false;
 
-    // Merge bidirectional: uneste local + remote, local castiga la conflict de ID
-    // (local e mai recent — a fost modificat de utilizator pe acest dispozitiv)
     const mergedEq = mergeById(remoteEq, db.equipment);
     const mergedIns = mergeById(remoteIns, db.inspections);
 
@@ -5500,11 +5535,10 @@ async function gasRestoreOnLoad() {
       toast('🔄 Date sincronizate (' + mergedEq.length + ' echipamente, ' + mergedIns.length + ' inspecții).', 'info');
     }
 
-    // Trimite merged complet inapoi la GAS ca sa fie la zi
     gasSyncAll();
     return changed;
   } catch (e) {
-    console.warn('[GAS] Restore esuat:', e.message);
+    _gasWarn('[GAS] Restore esuat:', e);
     return false;
   }
 }
@@ -5528,7 +5562,7 @@ async function gasUploadPdf(pdfBase64, filename) {
       addDriveLog(filename, 'ok');
     }
   } catch (e) {
-    console.warn('[GAS] PDF upload eșuat:', e.message);
+    _gasWarn('[GAS] PDF upload eșuat:', e);
   }
 }
 
@@ -6028,7 +6062,7 @@ function retireEquip(id) {
     toast('Echipament retras din uz.', 'info');
     // Salvare imediata in Sheets — POST
     gasCallPost({ action: 'saveEquipment', equipment: JSON.stringify(eq) })
-      .catch(e => console.warn('[GAS] saveEquipment retire:', e.message));
+      .catch(e => _gasWarn('[GAS] saveEquipment retire:', e));
   }
 }
 
@@ -7030,7 +7064,7 @@ async function startNfcWrite(equipId) {
       console.warn('[GAS] createShortUrl error:', r.error);
     }
   } catch(e) {
-    console.warn('[GAS] createShortUrl failed:', e.message);
+    _gasWarn('[GAS] createShortUrl failed:', e);
   }
 
   if (!shortCode) {
@@ -7570,7 +7604,7 @@ function saveEquip(existingId) {
     toast('Echipament actualizat.', 'success');
     // Salvare imediata in Sheets prin GAS — POST
     gasCallPost({ action: 'saveEquipment', equipment: JSON.stringify(eq) })
-      .catch(e => console.warn('[GAS] saveEquipment update:', e.message));
+      .catch(e => _gasWarn('[GAS] saveEquipment update:', e));
   } else {
     const eq = { id: genId(), ...getFormData(), status: document.getElementById('f-status')?.value || 'ok' };
     db.equipment.push(eq);
@@ -7578,7 +7612,7 @@ function saveEquip(existingId) {
     toast('Echipament adăugat: ' + eq.name, 'success');
     // Salvare imediata in Sheets prin GAS — POST
     gasCallPost({ action: 'saveEquipment', equipment: JSON.stringify(eq) })
-      .catch(e => console.warn('[GAS] saveEquipment add:', e.message));
+      .catch(e => _gasWarn('[GAS] saveEquipment add:', e));
     if (window._returnToInspectAfterEquipAdd) {
       window._returnToInspectAfterEquipAdd = false;
       renderInspectForm(eq.id);
@@ -8133,7 +8167,7 @@ async function driveUploadCSV(type) {
     }
     addDriveLog('CSV ' + type, 'ok');
   } catch(e) {
-    console.warn('[GAS] driveUploadCSV:', e.message);
+    _gasWarn('[GAS] driveUploadCSV:', e);
   }
 }
 
@@ -8149,11 +8183,11 @@ async function driveUploadJSON() {
 
     // 2. Export catalog complet (PRODUCT_DB hardcodat + customCatalog user)
     //    Se face in paralel, eroarea nu blocheaza backup-ul DB
-    _uploadCatalogToDrive().catch(e => console.warn('[GAS] catalog upload:', e.message));
+    _uploadCatalogToDrive().catch(e => _gasWarn('[GAS] catalog upload:', e));
 
     return result || null;
   } catch(e) {
-    console.warn('[GAS] driveUploadJSON:', e.message);
+    _gasWarn('[GAS] driveUploadJSON:', e);
     return null;
   }
 }
@@ -8740,7 +8774,7 @@ async function driveAutoUploadAfterInspection(ins) {
     action: 'saveInspection',
     inspection: JSON.stringify(insForSheets),
     equipName: eq ? eq.name : ''
-  }).catch(e => console.warn('[GAS] saveInspection:', e.message));
+  }).catch(e => _gasWarn('[GAS] saveInspection:', e));
 
   // 2. PDF — upload prin GAS în /PDF/ (flat) + folder lunar automat
   const pdfDate = ins.date ? ins.date.replace(/-/g, '') : new Date().toISOString().slice(0,10).replace(/-/g,'');
@@ -8748,13 +8782,13 @@ async function driveAutoUploadAfterInspection(ins) {
   generateInspectionPDF(ins, true).then(b64 => {
     if (!b64) return;
     gasUploadPdf(b64, pdfFilename);
-  }).catch(e => console.warn('[GAS] PDF gen:', e.message));
+  }).catch(e => _gasWarn('[GAS] PDF gen:', e));
 
   // 3. Backup JSON complet al DB (include echipamente + inspectii + customCatalog/recalls)
   //    Se trimite dupa 2s pentru a da timp PDF-ului sa porneasca
   if (_gasConfigured()) {
     setTimeout(() => {
-      driveUploadJSON().catch(e => console.warn('[GAS] JSON backup:', e.message));
+      driveUploadJSON().catch(e => _gasWarn('[GAS] JSON backup:', e));
     }, 2000);
   }
 
@@ -9220,15 +9254,98 @@ switchModule = function(mod) {
 
 // CertGen init is handled by switchModule
 
-// ── Show install prompt on initial page load (landing page) ──────────────────
-window.addEventListener('load', function() {
+// ═══════════════════════════════════════════════════════
+// REFRESH & SYNC STATUS — Cert Generator + PPE Inspection
+// ═══════════════════════════════════════════════════════
+
+// ── Shared: update a status dot + label ──────────────────────────────────────
+function _setSyncStatus(dotId, labelId, state, text) {
+  const dot = document.getElementById(dotId);
+  const lbl = document.getElementById(labelId);
+  if (!dot || !lbl) return;
+  const colors = { ok: '#34d399', error: '#f87171', loading: '#fbbf24', off: '#4a6882' };
+  dot.style.background = colors[state] || colors.off;
+  lbl.textContent = text;
+}
+
+// ── Shared: ping GAS and return status ───────────────────────────────────────
+async function _pingGAS(dotId, labelId) {
+  const configured = typeof _gasConfigured === 'function' ? _gasConfigured() : false;
+  if (!configured) {
+    _setSyncStatus(dotId, labelId, 'off', 'Neconfigurat');
+    return false;
+  }
+  _setSyncStatus(dotId, labelId, 'loading', 'Conectare…');
+  try {
+    const result = await (typeof gasCall === 'function'
+      ? gasCall({ action: 'ping' }, 8000)
+      : null);
+    if (result && result.ok) {
+      const now = new Date().toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
+      _setSyncStatus(dotId, labelId, 'ok', 'Conectat ' + now);
+      return true;
+    } else {
+      _setSyncStatus(dotId, labelId, 'error', 'Eroare răspuns');
+      return false;
+    }
+  } catch (e) {
+    _setSyncStatus(dotId, labelId, 'error', 'Offline');
+    return false;
+  }
+}
+
+// ── CERT GENERATOR: Refresh ───────────────────────────────────────────────────
+async function certRefreshSync() {
+  const btn = document.getElementById('cert-refresh-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sync…'; }
+  try {
+    const ok = await _pingGAS('cert-sync-dot', 'cert-sync-label');
+    if (ok && typeof certGasCall === 'function') {
+      // Pull latest cert count/history from GAS if available
+      try {
+        const res = await certGasCall({ action: 'getCounts' });
+        if (res && res.ok) {
+          if (typeof toast === 'function') toast('✅ Cert Generator sincronizat cu Spreadsheet-ul.', 'success');
+        }
+      } catch (_) {}
+    } else if (!ok) {
+      if (typeof toast === 'function') toast('⚠️ Nu s-a putut conecta la Spreadsheet.', 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
+  }
+}
+
+// ── PPE INSPECTION: Refresh ───────────────────────────────────────────────────
+async function ppeRefreshSync() {
+  const btn = document.getElementById('ppe-refresh-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sync…'; }
+  try {
+    const ok = await _pingGAS('ppe-sync-dot', 'ppe-sync-label');
+    if (ok && typeof gasRestoreOnLoad === 'function') {
+      const changed = await gasRestoreOnLoad();
+      if (typeof renderDashboard === 'function') renderDashboard();
+      if (typeof renderEquipTable === 'function') renderEquipTable();
+      if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
+      if (!changed && typeof toast === 'function') toast('✅ Date actualizate — nicio modificare nouă.', 'info');
+    } else if (!ok) {
+      if (typeof toast === 'function') toast('⚠️ Nu s-a putut conecta la Spreadsheet.', 'error');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
+  }
+}
+
+// ── Auto-check status when each module opens ─────────────────────────────────
+const _origSwitchForStatus = switchModule;
+switchModule = function(mod) {
+  _origSwitchForStatus(mod);
   setTimeout(function() {
-    var landing = document.getElementById('landing-page');
-    var isOnLanding = landing && landing.style.display !== 'none';
-    // Auto-show install prompt on landing
-    if (isOnLanding) { showPwaPrompt(); }
-  }, 800);
-});
+    if (mod === 'cert') _pingGAS('cert-sync-dot', 'cert-sync-label');
+    if (mod === 'ppe')  _pingGAS('ppe-sync-dot',  'ppe-sync-label');
+  }, 400);
+};
+
 </script>
 
 </body>
