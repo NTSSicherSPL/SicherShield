@@ -2238,9 +2238,35 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       <div class="lc-badge">🪢 Echipamente · Inspecții</div>
     </div>
   </div>
-  <div style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:100;">
-  <div class="landing-version" style="position:static;transform:none;">v2.5.1 · SicherShield Platform</div>
-</div>
+  <!-- Sync status on landing page -->
+  <div style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;align-items:center;gap:8px;">
+    <div id="landing-sync-bar" style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:7px 18px;backdrop-filter:blur(6px);">
+      <!-- Cert sync -->
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);font-family:var(--font-m);" title="Certificate Generator — Status Spreadsheet">
+        <span style="font-size:10px;opacity:.6;">📄</span>
+        <span id="cert-sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;"></span>
+        <span id="cert-sync-label" style="white-space:nowrap;">—</span>
+      </div>
+      <span style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;"></span>
+      <!-- PPE sync -->
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);font-family:var(--font-m);" title="PPE Inspection — Status Spreadsheet">
+        <span style="font-size:10px;opacity:.6;">🪢</span>
+        <span id="ppe-sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;"></span>
+        <span id="ppe-sync-label" style="white-space:nowrap;">—</span>
+      </div>
+      <span style="width:1px;height:14px;background:rgba(255,255,255,.15);flex-shrink:0;"></span>
+      <!-- Refresh both -->
+      <button
+        id="landing-refresh-btn"
+        onclick="landingRefreshSync()"
+        title="Refresh sincronizare"
+        style="display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text3);padding:2px 4px;font-size:12px;cursor:pointer;transition:color .15s;"
+        onmouseover="this.style.color='var(--accent)'"
+        onmouseout="this.style.color='var(--text3)'"
+      >🔄</button>
+    </div>
+    <div class="landing-version" style="position:static;transform:none;">v2.5.1 · SicherShield Platform</div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -2262,20 +2288,6 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     <button class="cert-tab" onclick="goPage('set')" id="tn-set">⚙️ Einstellungen / Settings</button>
   </div>
   <div class="topbar-right" style="display:flex;align-items:center;gap:10px;">
-    <!-- GAS connection status -->
-    <div id="cert-sync-status" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);font-family:var(--font-m);cursor:default;" title="Status conectare Spreadsheet">
-      <span id="cert-sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;"></span>
-      <span id="cert-sync-label" style="white-space:nowrap;">—</span>
-    </div>
-    <!-- Refresh button -->
-    <button
-      id="cert-refresh-btn"
-      onclick="certRefreshSync()"
-      title="Refresh / Sincronizare Spreadsheet"
-      style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:7px 13px;border-radius:7px;font-size:12px;font-weight:600;font-family:var(--font-b);cursor:pointer;transition:all .15s;white-space:nowrap;"
-      onmouseover="this.style.background='rgba(240,90,26,.15)';this.style.borderColor='rgba(240,90,26,.5)';this.style.color='var(--accent)'"
-      onmouseout="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,255,255,.15)';this.style.color='var(--text2)'"
-    >🔄 Refresh</button>
     <button
       onclick="switchModule('landing')"
       title="Pagina principală"
@@ -2570,20 +2582,6 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   <div class="topbar-right" style="display:flex;align-items:center;gap:10px;">
     <button class="btn btn-ghost btn-sm" onclick="openMobileSearch()"
       style="display:none" id="mobile-search-btn" title="Caută">🔍</button>
-    <!-- GAS connection status -->
-    <div id="ppe-sync-status" style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);font-family:var(--font-m);cursor:default;" title="Status conectare Spreadsheet">
-      <span id="ppe-sync-dot" style="width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .3s;"></span>
-      <span id="ppe-sync-label" style="white-space:nowrap;">—</span>
-    </div>
-    <!-- Refresh button -->
-    <button
-      id="ppe-refresh-btn"
-      onclick="ppeRefreshSync()"
-      title="Refresh / Sincronizare Spreadsheet"
-      style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:var(--text2);padding:7px 13px;border-radius:7px;font-size:12px;font-weight:600;font-family:var(--font-b);cursor:pointer;transition:all .15s;white-space:nowrap;"
-      onmouseover="this.style.background='rgba(240,90,26,.15)';this.style.borderColor='rgba(240,90,26,.5)';this.style.color='var(--accent)'"
-      onmouseout="this.style.background='rgba(255,255,255,.07)';this.style.borderColor='rgba(255,255,255,.15)';this.style.color='var(--text2)'"
-    >🔄 Refresh</button>
     <button
       onclick="switchModule('landing')"
       title="Pagina principală"
@@ -5528,7 +5526,7 @@ async function gasRestoreOnLoad() {
         db.equipment.length === 0 && db.inspections.length === 0) return false;
 
     const mergedEq = mergeById(remoteEq, db.equipment);
-    const mergedIns = remoteIns; // remote is source of truth for inspections
+    const mergedIns = mergeById(remoteIns, db.inspections);
 
     const changed = mergedEq.length !== db.equipment.length ||
                     mergedIns.length !== db.inspections.length ||
@@ -9349,10 +9347,28 @@ const _origSwitchForStatus = switchModule;
 switchModule = function(mod) {
   _origSwitchForStatus(mod);
   setTimeout(function() {
-    if (mod === 'cert') _pingGAS('cert-sync-dot', 'cert-sync-label');
-    if (mod === 'ppe')  _pingGAS('ppe-sync-dot',  'ppe-sync-label');
+    if (mod === 'cert')    _pingGAS('cert-sync-dot', 'cert-sync-label');
+    if (mod === 'ppe')     _pingGAS('ppe-sync-dot',  'ppe-sync-label');
+    if (mod === 'landing') landingRefreshSync();
   }, 400);
 };
+
+// ── LANDING PAGE: Refresh both sync statuses ──────────────────────────────────
+async function landingRefreshSync() {
+  const btn = document.getElementById('landing-refresh-btn');
+  if (btn) { btn.disabled = true; btn.style.pointerEvents = 'none'; }
+  try {
+    await Promise.all([
+      _pingGAS('cert-sync-dot', 'cert-sync-label'),
+      _pingGAS('ppe-sync-dot',  'ppe-sync-label')
+    ]);
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.pointerEvents = ''; }
+  }
+}
+
+// Auto-ping on initial load
+setTimeout(landingRefreshSync, 1200);
 
 </script>
 
