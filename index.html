@@ -1832,7 +1832,7 @@ textarea { resize: vertical; min-height: 80px; }
 #cert-app .pvcomp .cl2{font-size:10px;color:var(--gray2);text-transform:uppercase;letter-spacing:1px}
 #cert-app .pvcomp .cv{font-size:12px;font-weight:700;color:var(--orange);margin-top:3px}
 #cert-app .pvsigs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-#cert-app .pvsig{border-top:2px solid var(--orange);padding-top:5px;text-align:center;font-size:10px;color:var(--silv2)}
+#cert-app .pvsig{border-top:2px solid var(--orange);padding-top:5px;text-align:center;font-size:10px;color:var(--silv2);min-height:52px;position:relative}
 #cert-app .pvfoot{background:var(--navy3);border-top:1px solid rgba(232,119,34,.2);padding:6px 14px;text-align:center;font-size:10px;color:var(--gray2)}
 
 /* STEP NAV */
@@ -2415,13 +2415,58 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
   <div class="sc">
     <h3>✍️ Trainer &amp; Stempel / Trainer &amp; Stamp</h3>
-    <div class="sg3">
+
+    <!-- Trainer identity -->
+    <div class="sg3" style="margin-bottom:14px">
       <div class="fg"><label>Trainer Name</label><input type="text" id="s-tn" placeholder="Max Mustermann"></div>
-      <div class="fg"><label>Qualifikation / Qualification</label><input type="text" id="s-tq" placeholder="DGUV-Trainer, Sifa"></div>
       <div class="fg"><label>Registrierungs-Nr. / Reg. No.</label><input type="text" id="s-tr" placeholder="TR-12345"></div>
       <div class="fg"><label>Stempel-Nr. / Stamp No.</label><input type="text" id="s-sn" placeholder="ST-2025-001"></div>
-      <div class="fg"><label>Stempel / Stamp Zeile / Line 1</label><input type="text" id="s-s1" placeholder="SicherShield SRL"></div>
-      <div class="fg"><label>Stempel / Stamp Zeile / Line 2</label><input type="text" id="s-s2" placeholder="Zert. Schulungsträger"></div>
+    </div>
+
+    <!-- Per-course qualification -->
+    <p style="font-size:12px;color:var(--gray);margin:0 0 10px 0">
+      <strong>Calificare / Qualification</strong> — completează pentru fiecare tip de curs / fill for each course type:
+    </p>
+    <div class="sg2" style="margin-bottom:14px">
+      <div class="fg"><label>SS-01 · PSA Training — Qualifikation</label>
+        <input type="text" id="s-tq01" placeholder="z.B. DGUV-Trainer PSAgA, Befähigte Person"></div>
+      <div class="fg"><label>SS-04 · EuP-Schulung — Qualifikation</label>
+        <input type="text" id="s-tq04" placeholder="z.B. Elektrofachkraft, VEFK"></div>
+      <div class="fg"><label>SS-05 · Arbeitsschutz — Qualifikation</label>
+        <input type="text" id="s-tq05" placeholder="z.B. Sifa, Fachkraft f. Arbeitssicherheit"></div>
+      <div class="fg"><label>SS-10 · Erste Hilfe — Qualifikation</label>
+        <input type="text" id="s-tq10" placeholder="z.B. Ersthelfer-Ausbilder, DRK-Trainer"></div>
+    </div>
+
+    <!-- Stamp lines + image upload -->
+    <p style="font-size:12px;color:var(--gray);margin:0 0 10px 0">
+      <strong>Ștampilă / Stempel / Stamp</strong> — imaginea apare automat pe fiecare certificat / image appears automatically on each certificate. Se sincronizează automat pe toate dispozitivele via Google Drive.
+    </p>
+    <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div class="fg" style="margin-bottom:10px">
+          <label>Stempel / Stamp Zeile / Line 1</label>
+          <input type="text" id="s-s1" placeholder="SicherShield SRL">
+        </div>
+        <div class="fg">
+          <label>Stempel / Stamp Zeile / Line 2</label>
+          <input type="text" id="s-s2" placeholder="Zert. Schulungsträger">
+        </div>
+        <div id="stamp-sync-status" style="margin-top:8px;font-size:11px;color:var(--gray);display:none"></div>
+      </div>
+      <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:8px">
+        <label style="font-size:11px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Imagine ștampilă / Stamp image</label>
+        <div id="stamp-preview-wrap" style="width:100px;height:100px;border:2px dashed var(--orange);border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(232,119,34,.06);overflow:hidden;cursor:pointer" onclick="document.getElementById('stamp-file-input').click()" title="Click to upload stamp">
+          <img id="stamp-preview-img" style="max-width:96px;max-height:96px;display:none;object-fit:contain" alt="stamp">
+          <span id="stamp-preview-placeholder" style="font-size:28px;opacity:.5">🔖</span>
+        </div>
+        <input type="file" id="stamp-file-input" accept="image/*" style="display:none" onchange="handleStampUpload(this)">
+        <div style="display:flex;gap:6px">
+          <button class="sbtn" style="font-size:10px;padding:4px 10px" onclick="document.getElementById('stamp-file-input').click()">📁 Încarcă / Upload</button>
+          <button class="sbtn g" style="font-size:10px;padding:4px 10px" onclick="clearStampImage()" title="Remove stamp image">✕ Șterge</button>
+        </div>
+        <span style="font-size:10px;color:var(--gray);text-align:center">PNG / JPG · max 2MB<br>fundal transparent recomandat<br>☁ sync automat Drive</span>
+      </div>
     </div>
   </div>
 
@@ -3141,13 +3186,102 @@ function certToast(msg, type) {
   console.log('[Cert]', msg);
 }
 
+// ── CERT SETTINGS SYNC ────────────────────────────────────────────────────────
+// Pushes trainer settings + stamp image to GAS so all devices stay in sync.
+// Called automatically on every persist(). Debounced 2s to avoid flooding.
+let _certSyncTimer = null;
+function _certSyncSettings() {
+  if (typeof _gasConfigured !== 'function' || !_gasConfigured()) return;
+  if (_certSyncTimer) clearTimeout(_certSyncTimer);
+  _certSyncTimer = setTimeout(_doCertSyncSettings, 2000);
+}
+async function _doCertSyncSettings() {
+  try {
+    const payload = {
+      action:   'saveCertSettings',
+      settings: JSON.stringify({...S.sets, stampImg:''}), // settings without image
+      stampImg: S.sets.stampImg || '',                    // stamp image separately
+      ser:      JSON.stringify(S.ser),
+      cnt:      JSON.stringify(S.cnt)
+    };
+    const res = await (typeof gasCallPost === 'function'
+      ? gasCallPost(payload, 30000)
+      : certGasCall(payload));
+    if (res && res.ok) {
+      console.log('[CertSettings] Sync OK');
+    }
+  } catch(e) {
+    if (typeof _gasWarn === 'function') _gasWarn('[CertSettings] Sync failed:', e);
+  }
+}
+
+// Pull cert settings from GAS (called at startup and by RT polling)
+async function certRestoreSettings() {
+  if (typeof _gasConfigured !== 'function' || !_gasConfigured()) return false;
+  try {
+    const res = await (typeof gasCall === 'function'
+      ? gasCall({ action: 'getCertSettings' }, 12000)
+      : certGasCall({ action: 'getCertSettings' }));
+    if (!res || !res.ok) return false;
+
+    let changed = false;
+
+    // Restore settings (without stampImg)
+    if (res.settings) {
+      try {
+        const remote = JSON.parse(res.settings);
+        const prev = JSON.stringify({...S.sets, stampImg:''});
+        const next = JSON.stringify({...DS, ...remote, stampImg: S.sets.stampImg});
+        if (prev !== next) {
+          S.sets = {...DS, ...remote, stampImg: S.sets.stampImg};
+          changed = true;
+        }
+      } catch(e) {}
+    }
+
+    // Restore stamp image
+    if (res.stampImg !== undefined) {
+      const prevImg = S.sets.stampImg || '';
+      const remoteImg = res.stampImg || '';
+      if (remoteImg !== prevImg) {
+        S.sets.stampImg = remoteImg;
+        localStorage.setItem('ss_stamp_img', remoteImg);
+        changed = true;
+      }
+    }
+
+    // Restore series and counters
+    if (res.ser) { try { const r=JSON.parse(res.ser); S.ser={...DSER,...r}; } catch(e){} }
+    if (res.cnt) { try { const r=JSON.parse(res.cnt); S.cnt={...DCNT,...r}; } catch(e){} }
+
+    if (changed) {
+      // Save locally
+      try {
+        const toSave={hist:S.hist,sets:{...S.sets,stampImg:''},ser:S.ser,cnt:S.cnt};
+        localStorage.setItem('ss3', JSON.stringify(toSave));
+        if (S.sets.stampImg) localStorage.setItem('ss_stamp_img', S.sets.stampImg);
+        else localStorage.removeItem('ss_stamp_img');
+      } catch(e) {}
+      // Refresh UI if settings panel is open
+      if (typeof loadSetsForm === 'function') loadSetsForm();
+      if (typeof _updateStampPreview === 'function') _updateStampPreview(S.sets.stampImg || '');
+      if (typeof toast === 'function') toast('🔄 Setări trainer sincronizate de pe alt dispozitiv.', 'info');
+      console.log('[CertSettings] Restored from GAS, changed:', changed);
+    }
+    return changed;
+  } catch(e) {
+    if (typeof _gasWarn === 'function') _gasWarn('[CertSettings] Restore failed:', e);
+    return false;
+  }
+}
+
 </script>
 <script>
 
 const LOGO=window._LOGO;
 
 /* ── DEFAULTS ── */
-const DS={co:'SicherShield SRL',cui:'CUI RO12345678',reg:'J40/12345/2024',adr:'Str. Ciprian Porumbescu nr. 76',city:'Timișoara, România',tel:'',em1:'training@sichershield.de',em2:'office@sichershield.de',url:'sicher-cinematic-vision.lovable.app/verificare-certificate',tn:'',tq:'',tr:'',sn:'',s1:'',s2:''};
+const DS={co:'SicherShield SRL',cui:'CUI RO12345678',reg:'J40/12345/2024',adr:'Str. Ciprian Porumbescu nr. 76',city:'Timișoara, România',tel:'',em1:'training@sichershield.de',em2:'office@sichershield.de',url:'sicher-cinematic-vision.lovable.app/verificare-certificate',tn:'',tq:'',tq01:'',tq04:'',tq05:'',tq10:'',tr:'',sn:'',s1:'',s2:'',stampImg:''};
 const DSER={'01':'PSA-2025','04':'EUP-2025','05':'AS-2025','10':'EH-2025'};
 const DCNT={'01':1,'04':1,'05':1,'10':1};
 
@@ -3155,8 +3289,30 @@ const DCNT={'01':1,'04':1,'05':1,'10':1};
 let S={step:0,fn:'',ln:'',date:'',pos:'',co2:'',dept:'',course:null,langs:[],hist:[],sets:{...DS},ser:{...DSER},cnt:{...DCNT}};
 
 /* ── PERSIST ── */
-function persist(){try{localStorage.setItem('ss3',JSON.stringify({hist:S.hist,sets:S.sets,ser:S.ser,cnt:S.cnt}))}catch(e){}}
-function restore(){try{const d=JSON.parse(localStorage.getItem('ss3')||'{}');if(d.hist)S.hist=d.hist;if(d.sets)S.sets={...DS,...d.sets};if(d.ser)S.ser={...DSER,...d.ser};if(d.cnt)S.cnt={...DCNT,...d.cnt}}catch(e){}}
+// stampImg is stored separately to avoid ss3 becoming too large for localStorage/GAS
+function persist(){
+  try{
+    const toSave={hist:S.hist,sets:{...S.sets,stampImg:''},ser:S.ser,cnt:S.cnt};
+    localStorage.setItem('ss3',JSON.stringify(toSave));
+    // stampImg stored in its own key so it survives ss3 resets
+    if(S.sets.stampImg) localStorage.setItem('ss_stamp_img', S.sets.stampImg);
+    else localStorage.removeItem('ss_stamp_img');
+  }catch(e){}
+  // Push settings to GAS so other devices get them
+  _certSyncSettings();
+}
+function restore(){
+  try{
+    const d=JSON.parse(localStorage.getItem('ss3')||'{}');
+    if(d.hist)S.hist=d.hist;
+    if(d.sets)S.sets={...DS,...d.sets};
+    if(d.ser)S.ser={...DSER,...d.ser};
+    if(d.cnt)S.cnt={...DCNT,...d.cnt};
+  }catch(e){}
+  // Restore stamp image from its own key
+  const img=localStorage.getItem('ss_stamp_img')||'';
+  S.sets.stampImg=img;
+}
 
 /* ── COURSES ── */
 const C={
@@ -3236,7 +3392,7 @@ function fullName(){
   const ln=(S.ln||document.getElementById('inp-ln')?.value||'').trim();
   return (fn+' '+ln).trim()||'— Name —';
 }
-function trainerLine(){const s=S.sets;return s.tn?(s.tn+(s.tq?' · '+s.tq:'')+(s.tr?' ('+s.tr+')':'')):null}
+function trainerLine(courseId){const s=S.sets;const tq=(courseId&&s['tq'+courseId])||s.tq||'';return s.tn?(s.tn+(tq?' · '+tq:'')+(s.tr?' ('+s.tr+')':'')):null}
 function stampLine(){const s=S.sets;return(s.sn?'Nr.'+s.sn+' ':'')+( s.s1||'')}
 
 /* ── PAGE NAV ── */
@@ -3337,9 +3493,12 @@ function renderPV(){
   if(!S.course||!S.langs.length){document.getElementById('pvArea').innerHTML='';return;}
   const lang=S.langs[0],c=C[S.course],d=c[lang],t=T[lang];
   const no=certNo(S.course),name=fullName();
-  const trl=trainerLine()||t.sigT,stl=stampLine()||t.stamp;
+  const trl=trainerLine(S.course)||t.sigT, stl=stampLine()||t.stamp;
   const footer=`${S.sets.co} · ${S.sets.cui} · ${S.sets.adr}, ${S.sets.city}`;
   const isCert=c.t==='cert';
+  const stampHtml=S.sets.stampImg
+    ?`<div class="pvsig" style="position:relative;min-height:52px"><img src="${S.sets.stampImg}" style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);max-height:38px;max-width:58px;object-fit:contain;opacity:.85">${stl}</div>`
+    :`<div class="pvsig">${stl}</div>`;
   document.getElementById('pvArea').innerHTML=`
   <div class="pv">
     <div class="pvh">
@@ -3362,7 +3521,7 @@ function renderPV(){
         <div class="pvmb"><div class="ml">${t.vld}</div><div class="mv" style="color:var(--orng2)">${validUntil(d.valid)}</div></div>
       </div>
       ${isCert&&d.topics?`<div class="pvtopics"><div class="tl">◆ ${t.topics}</div><ul>${d.topics.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="pvcomp"><div class="cl2">◆ ${t.comp}</div><div class="cv">${d.comp}</div></div>`:''}
-      <div class="pvsigs"><div class="pvsig">${t.sigP}</div><div class="pvsig">${trl}</div><div class="pvsig">${stl}</div></div>
+      <div class="pvsigs"><div class="pvsig">${t.sigP}</div><div class="pvsig">${trl}</div>${stampHtml}</div>
     </div>
     <div class="pvfoot">${t.verify} ${S.sets.url} · ${footer}</div>
   </div>
@@ -3405,7 +3564,7 @@ async function genPDF(lang,rec=true){
   const c=C[S.course],d=c[lang],t=T[lang];
   const s=S.sets;
   const no=certNo(S.course),name=fullName(),vt=validUntil(d.valid);
-  const trl=trainerLine()||t.sigT, stl=stampLine()||t.stamp;
+  const trl=trainerLine(S.course)||t.sigT, stl=stampLine()||t.stamp;
   const ps=x=>pdfSafe(x||'');
 
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
@@ -3596,9 +3755,25 @@ async function genPDF(lang,rec=true){
     doc.setDrawColor(...O); doc.setLineWidth(0.5);
     doc.line(sx+4, sigY+10, sx+sw3-4, sigY+10);
     doc.setFontSize(7.5); doc.setFont('helvetica','normal');
-    doc.setTextColor(...N);  // dark navy on light bg → readable
+    doc.setTextColor(...N);
     doc.text(lb, sx+sw3/2, sigY+15, {align:'center'});
   });
+
+  // Stamp image: drawn above the stamp signature line (3rd column)
+  const stampImgData = S.sets.stampImg || '';
+  if (stampImgData) {
+    try {
+      const stSx  = MX + 2 * sw3;
+      const stW   = Math.min(sw3 - 10, 26);  // max 26mm wide, square
+      const stH   = stW;
+      const stX   = stSx + (sw3 - stW) / 2;
+      const stY   = sigY - stH - 1;           // just above the line
+      const fmt2  = /data:image\/png/i.test(stampImgData) ? 'PNG' : 'JPEG';
+      const si    = new Image();
+      si.src      = stampImgData;
+      doc.addImage(si, fmt2, stX, stY, stW, stH, '', 'FAST');
+    } catch(e) { console.warn('[CertGen] Stamp image render error:', e); }
+  }
 
   // ── FOOTER ───────────────────────────────────────────────────────────
   doc.setFillColor(...N);
@@ -3633,13 +3808,14 @@ function renderHist(){
 function clearH(){if(confirm('Verlauf / History löschen / clear?')){S.hist=[];persist();renderHist();}}
 
 /* ── SETTINGS ── */
-const SF=[['s-co','co'],['s-cui','cui'],['s-reg','reg'],['s-adr','adr'],['s-city','city'],['s-tel','tel'],['s-em1','em1'],['s-em2','em2'],['s-url','url'],['s-tn','tn'],['s-tq','tq'],['s-tr','tr'],['s-sn','sn'],['s-s1','s1'],['s-s2','s2']];
+const SF=[['s-co','co'],['s-cui','cui'],['s-reg','reg'],['s-adr','adr'],['s-city','city'],['s-tel','tel'],['s-em1','em1'],['s-em2','em2'],['s-url','url'],['s-tn','tn'],['s-tq01','tq01'],['s-tq04','tq04'],['s-tq05','tq05'],['s-tq10','tq10'],['s-tr','tr'],['s-sn','sn'],['s-s1','s1'],['s-s2','s2']];
 function loadSetsForm(){
   SF.forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=S.sets[k]||'';});
   ['01','04','05','10'].forEach(id=>{
     const se=document.getElementById('sr-'+id);if(se)se.value=S.ser[id]||'';
     const ce=document.getElementById('cnt-'+id);if(ce)ce.value=S.cnt[id]||1;
   });
+  _updateStampPreview(S.sets.stampImg||'');
 }
 function saveSets(){
   SF.forEach(([id,k])=>{const e=document.getElementById(id);if(e)S.sets[k]=e.value;});
@@ -3647,10 +3823,47 @@ function saveSets(){
     const se=document.getElementById('sr-'+id);if(se)S.ser[id]=se.value;
     const ce=document.getElementById('cnt-'+id);if(ce){const v=parseInt(ce.value);if(v>=1)S.cnt[id]=v;}
   });
-  persist();
+  persist(); // persist() also triggers _certSyncSettings()
   const t=document.getElementById('stToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
 }
 function resetSets(){if(!confirm('Zurücksetzen / Reset to defaults?'))return;S.sets={...DS};S.ser={...DSER};loadSetsForm();}
+
+/* ── STAMP IMAGE HELPERS ── */
+function _updateStampPreview(dataUrl){
+  const img=document.getElementById('stamp-preview-img');
+  const ph=document.getElementById('stamp-preview-placeholder');
+  if(!img||!ph)return;
+  if(dataUrl){img.src=dataUrl;img.style.display='';ph.style.display='none';}
+  else{img.src='';img.style.display='none';ph.style.display='';}
+}
+function handleStampUpload(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>2*1024*1024){alert('Imaginea e prea mare (max 2MB).\nImage too large (max 2MB).');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    S.sets.stampImg=e.target.result;
+    _updateStampPreview(e.target.result);
+    persist(); // saves locally + triggers GAS sync
+    _showStampSyncStatus('⏳ Se sincronizează pe Drive…');
+    setTimeout(()=>_showStampSyncStatus(''),4000);
+    const t=document.getElementById('stToast');if(t){t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+  };
+  reader.readAsDataURL(file);
+}
+function clearStampImage(){
+  S.sets.stampImg='';
+  _updateStampPreview('');
+  const inp=document.getElementById('stamp-file-input');if(inp)inp.value='';
+  persist();
+  _showStampSyncStatus('✓ Ștampilă ștearsă și sincronizată.');
+  setTimeout(()=>_showStampSyncStatus(''),3000);
+}
+function _showStampSyncStatus(msg){
+  const el=document.getElementById('stamp-sync-status');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.display=msg?'':'none';
+}
 
 /* ── INIT ── */
 function init(){
@@ -5426,9 +5639,7 @@ async function gasSyncAll() {
       const now = new Date().toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
       const el = document.getElementById('gas-last-sync');
       if (el) el.textContent = now;
-      // Update realtime indicator
-      _rtSetStatus('ok', 'Sync ' + now);
-      // Store hash of what we just pushed so poll knows baseline
+      _rtSetStatus('ok', '● Live · ' + now);
       _rtLastHash = _rtHashDB();
       console.log('[GAS] Sync OK —', result.equipment, 'echipamente,', result.inspections, 'inspecții');
     }
@@ -5484,22 +5695,22 @@ let _rtPollTimer    = null;
 let _rtLastHash     = '';
 let _rtIsPolling    = false;
 let _rtConsecErrors = 0;
-const _RT_ACTIVE_MS  = 15000;   // 15 secunde când tabul e activ
-const _RT_BG_MS      = 60000;   // 60 secunde când tabul e în fundal
-const _RT_MAX_ERR    = 5;       // pauze de backoff după 5 erori consecutive
+const _RT_ACTIVE_MS  = 15000;
+const _RT_BG_MS      = 60000;
+const _RT_MAX_ERR    = 5;
 
-// Calculează un hash simplu (lungime + câmpuri cheie) pentru a detecta schimbări fără a compara JSON complet
 function _rtHashDB() {
   const eqH = db.equipment.map(e => e.id + '|' + (e.status||'') + '|' + (e.updatedAt||'')).join(',');
   const inH = db.inspections.map(i => i.id + '|' + (i.verdict||'') + '|' + (i.date||'')).join(',');
-  return db.equipment.length + ':' + db.inspections.length + ':' + eqH.length + ':' + inH.length;
+  // Also include a hash of cert settings (trainer name + stamp presence) for cross-device detection
+  const sH = (typeof S !== 'undefined')
+    ? (S.sets.tn||'') + '|' + (S.sets.stampImg ? '1' : '0') + '|' + (S.sets.tq01||'') + '|' + (S.sets.tq04||'')
+    : '';
+  return db.equipment.length + ':' + db.inspections.length + ':' + eqH.length + ':' + inH.length + ':' + sH;
 }
 
-// Actualizează indicatorul de sync din UI (bară landing + pagina settings)
 function _rtSetStatus(state, label) {
-  // Landing bar — PPE dot/label
   _setSyncStatus('ppe-sync-dot', 'ppe-sync-label', state, label);
-  // Settings page indicator
   const icon = document.getElementById('gas-status-icon');
   const text = document.getElementById('gas-status-text');
   const states = { ok:'🟢', loading:'🔄', error:'🔴', off:'⚪' };
@@ -5508,7 +5719,6 @@ function _rtSetStatus(state, label) {
     text.textContent = label || '';
     text.style.color = state === 'ok' ? 'var(--green)' : state === 'error' ? 'var(--red)' : 'var(--text3)';
   }
-  // Realtime badge în header/nav dacă există
   const rtBadge = document.getElementById('rt-sync-badge');
   if (rtBadge) {
     rtBadge.textContent = state === 'ok' ? '●' : state === 'loading' ? '◌' : '○';
@@ -5517,7 +5727,6 @@ function _rtSetStatus(state, label) {
   }
 }
 
-// O iterație de poll: trage datele din GAS și aplică dacă s-au schimbat
 async function _rtPollOnce() {
   if (!_gasConfigured() || _rtIsPolling) return;
   _rtIsPolling = true;
@@ -5533,40 +5742,34 @@ async function _rtPollOnce() {
 
     const remoteEq  = result.equipment  || [];
     const remoteIns = result.inspections || [];
-
-    // Merge remote → local (remote e sursa de adevăr pentru alte dispozitive)
     const mergedEq  = mergeById(remoteEq,  db.equipment);
     const mergedIns = mergeById(remoteIns, db.inspections);
 
-    // Construiește hash-ul noului stat
-    const prevEq  = db.equipment;
-    const prevIns = db.inspections;
-    db.equipment   = mergedEq;
-    db.inspections = mergedIns;
+    const prevEq = db.equipment, prevIns = db.inspections;
+    db.equipment = mergedEq; db.inspections = mergedIns;
     const newHash = _rtHashDB();
-    db.equipment   = prevEq;
-    db.inspections = prevIns;
+    db.equipment = prevEq; db.inspections = prevIns;
 
     if (newHash !== _rtLastHash) {
-      // Au apărut date noi de pe alt dispozitiv — aplică
       db.equipment   = mergedEq;
       db.inspections = mergedIns;
       if (!db.customCatalog) db.customCatalog = [];
       localStorage.setItem(DB_KEY, JSON.stringify(db));
       _rtLastHash = newHash;
-
-      // Re-randează UI-ul paginii curente
       _rtRefreshUI();
-
       const now = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       const el = document.getElementById('gas-last-sync');
       if (el) el.textContent = now;
       _rtSetStatus('ok', '● Live · ' + now);
       toast('🔄 Date noi de pe alt dispozitiv (' + mergedEq.length + ' echip., ' + mergedIns.length + ' insp.)', 'info');
-      console.log('[RT-SYNC] Schimbare detectată → UI actualizat', now);
     } else {
       const now = new Date().toLocaleTimeString('ro-RO', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       _rtSetStatus('ok', '● Live · ' + now);
+    }
+
+    // Also poll cert settings (trainer + stamp) in background
+    if (typeof certRestoreSettings === 'function') {
+      certRestoreSettings().catch(() => {});
     }
   } catch (e) {
     _rtConsecErrors++;
@@ -5577,7 +5780,6 @@ async function _rtPollOnce() {
   }
 }
 
-// Re-randează pagina curentă fără a pierde starea utilizatorului
 function _rtRefreshUI() {
   updateSidebarCounts();
   if (typeof currentPage !== 'undefined') {
@@ -5586,45 +5788,29 @@ function _rtRefreshUI() {
       if (currentPage === 'equipment')   renderEquipTable();
       if (currentPage === 'alerts')      renderAlerts();
       if (currentPage === 'reports')     renderReportStats();
-    } catch(e) { console.warn('[RT-SYNC] renderUI error:', e); }
+    } catch(e) {}
   }
 }
 
-// Pornește sau restarteaza polling-ul
 function _rtStartPolling() {
   if (!_gasConfigured()) return;
   _rtStopPolling();
   const ms = document.hidden ? _RT_BG_MS : _RT_ACTIVE_MS;
-  // Backoff exponential la erori consecutive
   const backoff = _rtConsecErrors >= _RT_MAX_ERR ? Math.min(_rtConsecErrors * 10000, 120000) : 0;
   _rtPollTimer = setInterval(_rtPollOnce, ms + backoff);
-  console.log('[RT-SYNC] Polling pornit —', (ms + backoff) / 1000 + 's interval' + (backoff ? ' (backoff)' : ''));
 }
-
 function _rtStopPolling() {
   if (_rtPollTimer) { clearInterval(_rtPollTimer); _rtPollTimer = null; }
 }
-
-// Schimbă intervalul când tabul intră/iese din fundal (Page Visibility API)
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden) {
-    // Tabul redevine activ — sync imediat + interval scurt
-    console.log('[RT-SYNC] Tab activ → sync imediat + interval', _RT_ACTIVE_MS/1000 + 's');
-    _rtPollOnce();
-    _rtStartPolling();
-  } else {
-    // Tabul intră în fundal — interval lung pentru economie
-    console.log('[RT-SYNC] Tab fundal → interval', _RT_BG_MS/1000 + 's');
-    _rtStartPolling();
-  }
+  if (!document.hidden) { _rtPollOnce(); _rtStartPolling(); }
+  else { _rtStartPolling(); }
 });
-
-// Inițializare: pornit din initDriveOnPageLoad după primul restore
 function _rtInit() {
   if (!_gasConfigured()) return;
   _rtLastHash = _rtHashDB();
   _rtStartPolling();
-  console.log('[RT-SYNC] Motor pornit · hash baseline:', _rtLastHash);
+  console.log('[RT-SYNC] Motor pornit');
 }
 
 // Merge doua liste dupa .id: remote e baza, local suprascrie la conflict
@@ -8976,13 +9162,16 @@ async function gasTestConnection() {
 function initDriveOnPageLoad() {
   applyDriveConfigToUI();
   applyGasConfigToUI();
-  // Restore din Sheets la pornire (fără OAuth, fără popup)
+  // Restore PPE data from Sheets at startup
   gasRestoreOnLoad().then(restored => {
     if (restored) { renderDashboard(); updateSidebarCounts(); }
-    // Pornește motorul de sincronizare în timp real după primul restore
+    // Restore cert settings (trainer info + stamp image) from GAS
+    if (typeof certRestoreSettings === 'function') {
+      certRestoreSettings().catch(() => {});
+    }
+    // Start realtime polling engine
     _rtInit();
   });
-  // Backup JSON zilnic la pornire (max o data la 23h)
   _maybeDailyJsonBackup();
 }
 
@@ -9297,15 +9486,17 @@ async function ppeRefreshSync() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Sync…'; }
   try {
     const ok = await _pingGAS('ppe-sync-dot', 'ppe-sync-label');
-    if (ok && typeof gasRestoreOnLoad === 'function') {
-      // Force full poll cycle and restart interval
-      _rtStopPolling();
-      await _rtPollOnce();
-      _rtStartPolling();
+    if (ok) {
+      // Force immediate RT poll (PPE data)
+      if (typeof _rtStopPolling === 'function') _rtStopPolling();
+      if (typeof _rtPollOnce === 'function') await _rtPollOnce();
+      if (typeof _rtStartPolling === 'function') _rtStartPolling();
+      // Also pull cert settings + stamp image
+      if (typeof certRestoreSettings === 'function') await certRestoreSettings();
       if (typeof renderDashboard === 'function') renderDashboard();
       if (typeof renderEquipTable === 'function') renderEquipTable();
       if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
-    } else if (!ok) {
+    } else {
       if (typeof toast === 'function') toast('⚠️ Nu s-a putut conecta la Spreadsheet.', 'error');
     }
   } finally {
