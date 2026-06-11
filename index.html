@@ -2407,9 +2407,9 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       <div class="fg"><label>Straße &amp; Nr. / Street &amp; No.</label><input type="text" id="s-adr" placeholder="Str. Ciprian Porumbescu nr. 76"></div>
       <div class="fg"><label>Stadt / City</label><input type="text" id="s-city" placeholder="Timișoara, România"></div>
       <div class="fg"><label>Telefon / Phone</label><input type="text" id="s-tel" placeholder="+40 ..."></div>
-      <div class="fg"><label>E-Mail Training</label><input type="text" id="s-em1" placeholder="training@sichershield.de"></div>
-      <div class="fg"><label>E-Mail Office</label><input type="text" id="s-em2" placeholder="office@sichershield.de"></div>
-      <div class="fg"><label>Verify URL</label><input type="text" id="s-url" placeholder="sichershield.de/verify"></div>
+      <div class="fg"><label>E-Mail Training</label><input type="text" id="s-em1" placeholder="training@sichershield.eu"></div>
+      <div class="fg"><label>E-Mail Office</label><input type="text" id="s-em2" placeholder="office@sichershield.eu"></div>
+      <div class="fg"><label>Verify URL</label><input type="text" id="s-url" placeholder="sichershield.eu/verify"></div>
     </div>
   </div>
 
@@ -3167,7 +3167,7 @@ function certToast(msg, type) {
 const LOGO=window._LOGO;
 
 /* ── DEFAULTS ── */
-const DS={co:'SicherShield SRL',cui:'CUI RO12345678',reg:'J40/12345/2024',adr:'Str. Ciprian Porumbescu nr. 76',city:'Timișoara, România',tel:'',em1:'training@sichershield.de',em2:'office@sichershield.de',url:'sicher-cinematic-vision.lovable.app/verificare-certificate',tn:'',tq:'',tq01:'',tq04:'',tq05:'',tq10:'',tr:'',sn:'',s1:'',s2:'',stampImg:''};
+const DS={co:'SicherShield SRL',cui:'CUI RO12345678',reg:'J40/12345/2024',adr:'Str. Ciprian Porumbescu nr. 76',city:'Timișoara, România',tel:'',em1:'training@sichershield.eu',em2:'office@sichershield.eu',url:'sicher-cinematic-vision.lovable.app/verificare-certificate',tn:'',tq:'',tq01:'',tq04:'',tq05:'',tq10:'',tr:'',sn:'',s1:'',s2:'',stampImg:''};
 const DSER={'01':'PSA-2025','04':'EUP-2025','05':'AS-2025','10':'EH-2025'};
 const DCNT={'01':1,'04':1,'05':1,'10':1};
 
@@ -8865,7 +8865,7 @@ async function generateInspectionPDF(ins, returnBase64 = false) {
   needsPage(14);
   fillRect(0, y + 2, W, 10, NAVY);
   setFont(6.5, 'normal', [180, 200, 220]);
-  txt('SicherShield SRL  ·  CUI RO12345678  ·  J40/12345/2024  ·  www.sichershield.ro', W / 2, y + 8.5, { align: 'center' });
+  txt('SicherShield SRL  ·  CUI RO12345678  ·  J40/12345/2024', W / 2, y + 8.5, { align: 'center' });
   setFont(6, 'normal', [120, 140, 160]);
   txt('Retain 10 years · Aufbewahrung 10 Jahre · Pastrare 10 ani (EN 365)', W / 2, y + 13, { align: 'center' });
   setFont(6, 'normal', [120, 140, 160]);
