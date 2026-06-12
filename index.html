@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1a4080">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>SicherShield — Platform</title>h
+<title>SicherShield — Platform</title>
 
 <script>
 // ── PWA Manifest via Blob URL (required for Chrome mobile install) ───────────
@@ -3190,8 +3190,13 @@ function _certSyncToGAS() {
       ser:      JSON.stringify(S.ser),
       cnt:      JSON.stringify(S.cnt)
     };
-    // Fara stampImg la fiecare save — prea mare; stamp se salveaza separat la upload
-    gasCallPost(payload).catch(function() {});
+    // stampImg trimis doar daca exista deja in memorie (provine din upload sau restore)
+    if (S.sets.stampImg) payload.stampImg = S.sets.stampImg;
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(function() {});
   } catch(e) {}
 }
 
@@ -3204,7 +3209,12 @@ async function _certRestoreFromGAS() {
   try {
     const url = (window._gasUrlOverride || localStorage.getItem('ss_gas_url') || (typeof GAS_URL !== 'undefined' ? GAS_URL : '') || window._GAS_URL || '').trim();
     if (!url || url.includes('INLOCUIESTE')) return;
-    const data = await gasCallPost({ action: 'getCertSettings' });
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getCertSettings' })
+    });
+    const data = await res.json();
     if (!data || !data.ok) return;
     // Aplica setarile din GAS
     if (data.settings) { try { const s = JSON.parse(data.settings); S.sets = { ...DS, ...s }; } catch(e) {} }
@@ -3604,10 +3614,10 @@ async function genPDF(lang,rec=true){
 
   doc.setDrawColor(...O); doc.setLineWidth(0.3);
   doc.line(5,sy,SB-5,sy); sy+=4;
-  doc.setFontSize(5.5); doc.setFont('times','bold');
+  doc.setFontSize(9); doc.setFont('times','bold');
   doc.setTextColor(...GR);
-  doc.text(ps(t.verify), SB/2, sy, {align:'center'}); sy+=4;
-  doc.setFontSize(5); doc.setFont('times','normal');
+  doc.text(ps(t.verify), SB/2, sy, {align:'center'}); sy+=5;
+  doc.setFontSize(9); doc.setFont('times','normal');
   doc.setTextColor(230,240,252);  // bright on dark sidebar
   const vls=doc.splitTextToSize(ps(s.url), SB-8);
   doc.text(vls, SB/2, sy, {align:'center'});
@@ -3703,6 +3713,13 @@ async function genPDF(lang,rec=true){
   const sw3=MW/3;
   [ps(t.sigP), ps(trl), ps(stl)].forEach((lb,i)=>{
     const sx=MX+i*sw3;
+    // Stamp image (only for 3rd column = Stamp)
+    if(i===2 && s.stampImg){
+      try{
+        const simgW=28, simgH=18;
+        doc.addImage(s.stampImg,'PNG', sx+sw3/2-simgW/2, sigY-simgH+2, simgW, simgH,'','FAST');
+      }catch(e){}
+    }
     doc.setDrawColor(...O); doc.setLineWidth(0.5);
     doc.line(sx+4, sigY+10, sx+sw3-4, sigY+10);
     doc.setFontSize(7.5); doc.setFont('times','normal');
@@ -3786,6 +3803,11 @@ function init(){
   S.date=today;
   chk0();
   renderCG();
+  // Polling periodic — sincronizeaza setarile/stampila intre dispozitive
+  if (!window._certPollStarted) {
+    window._certPollStarted = true;
+    setInterval(function(){ _certRestoreFromGAS(); }, 15000);
+  }
 }
 // Run on DOMContentLoaded for maximum compatibility
 // CertGen init is deferred — called by switchModule('cert')
@@ -5650,7 +5672,12 @@ async function _ppeLoadFromGAS() {
                  (typeof GAS_URL !== 'undefined' ? GAS_URL : '') || window._GAS_URL || '').trim();
     if (!url || url.includes('INLOCUIESTE')) return;
 
-    const data = await gasCallPost({ action: 'getAll' });
+    const res  = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'getAll' })
+    });
+    const data = await res.json();
     if (!data || !data.ok) return;
 
     db.equipment   = data.equipment   || [];
