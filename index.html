@@ -396,8 +396,8 @@ const DCNT={'01':1,'04':1,'05':1,'10':1};
 let S={step:0,fn:'',ln:'',date:'',pos:'',co2:'',dept:'',course:null,langs:[],hist:[],sets:{...DS},ser:{...DSER},cnt:{...DCNT}};
 
 /* ── PERSIST ── */
-function persist(){try{localStorage.setItem('ss3',JSON.stringify({hist:S.hist,sets:S.sets,ser:S.ser,cnt:S.cnt}))}catch(e){}}
-function restore(){try{const d=JSON.parse(localStorage.getItem('ss3')||'{}');if(d.hist)S.hist=d.hist;if(d.sets)S.sets={...DS,...d.sets};if(d.ser)S.ser={...DSER,...d.ser};if(d.cnt)S.cnt={...DCNT,...d.cnt}}catch(e){}}
+function persist(){ /* no-op: all state lives on Drive/Sheets, see gasPersistState() */ }
+function restore(){ /* no-op: state is loaded remotely via gasLoadState() during init */ }
 
 /* ── COURSES ── */
 const C={
@@ -635,10 +635,24 @@ function updCnt(){
     ['01','04','05','10'].map(id=>`<div class="cntb"><div class="cn">${String(S.cnt[id]||1).padStart(4,'0')}</div><div class="cl">SS-${id}</div></div>`).join('');
 }
 
-async function genAll(){for(const l of S.langs)await genPDF(l,false);
+async function genAll(){
+  let last=null;
+  for(const l of S.langs) last = await genPDF(l,false);
   S.cnt[S.course]=(S.cnt[S.course]||1)+1;
   S.hist.unshift({no:certNo(S.course),name:fullName(),course:C[S.course].DE.title,langs:S.langs.join('+'),type:C[S.course].t,date:fmt(S.date),id:S.course});
-  persist();updCnt();
+  updCnt();
+  gasPersistState();
+  if(last){
+    const {no,vt,d,s,_pdfB64}=last;
+    gasSaveCertificate({
+      certNo: no, firstName: S.fn, lastName: S.ln, position: S.pos,
+      company: S.co2, department: S.dept, courseId: S.course,
+      courseTitle: C[S.course].DE.title, norm: d.norm, duration: d.dur,
+      language: S.langs.join('+'), issueDate: S.date, validUntil: vt,
+      certNumber: no, trainerId: s.tr, company_issuer: s.co,
+      pdfBase64: _pdfB64
+    });
+  }
 }
 
 async function genPDF(lang,rec=true){
@@ -853,7 +867,8 @@ async function genPDF(lang,rec=true){
     S.cnt[S.course]=(S.cnt[S.course]||1)+1;
     S.hist.unshift({no:certNo(S.course),name:fullName(),course:C[S.course].DE.title,
       langs:lang,type:'cert',date:fmt(S.date),id:S.course});
-    persist(); updCnt();
+    updCnt();
+    gasPersistState();
     gasSaveCertificate({
       certNo: no, firstName: S.fn, lastName: S.ln, position: S.pos,
       company: S.co2, department: S.dept, courseId: S.course,
@@ -863,6 +878,7 @@ async function genPDF(lang,rec=true){
       pdfBase64: _pdfB64
     });
   }
+  return {no, vt, d, s, _pdfB64};
 }
 
 function renderHist(){
@@ -871,7 +887,7 @@ function renderHist(){
   el.innerHTML=`<table class="htbl"><thead><tr><th>Nr.</th><th>Typ / Type</th><th>Name</th><th>Kurs / Course</th><th>Sprache / Language</th><th>Datum / Date</th></tr></thead>
   <tbody>${S.hist.map(h=>`<tr><td style="color:var(--orange);font-weight:700">${h.no}</td><td><span class="bdg ${h.type==='cert'?'bdg-c':'bdg-k'}">${h.type==='cert'?'CERT':'CHECK'}</span></td><td style="font-weight:600">${h.name}</td><td>${h.course}</td><td style="font-weight:700;color:var(--orng2)">${h.langs}</td><td>${h.date}</td></tr>`).join('')}</tbody></table>`;
 }
-function clearH(){if(confirm('Verlauf / History löschen / clear?')){S.hist=[];persist();renderHist();}}
+function clearH(){if(confirm('Verlauf / History löschen / clear?')){S.hist=[];renderHist();}}
 
 /* ── SETTINGS ── */
 const SF=[['s-co','co'],['s-cui','cui'],['s-reg','reg'],['s-adr','adr'],['s-city','city'],['s-tel','tel'],['s-em1','em1'],['s-em2','em2'],['s-url','url'],['s-tn','tn'],['s-tq','tq'],['s-tr','tr'],['s-sn','sn'],['s-s1','s1'],['s-s2','s2']];
@@ -882,7 +898,7 @@ function loadSetsForm(){
     const ce=document.getElementById('cnt-'+id);if(ce)ce.value=S.cnt[id]||1;
   });
   const gasEl=document.getElementById('s-gas');
-  if(gasEl){ gasEl.value = localStorage.getItem('ss_gas_url') || ''; }
+  if(gasEl){ gasEl.value = _gasUrl(); }
 }
 function saveSets(){
   SF.forEach(([id,k])=>{const e=document.getElementById(id);if(e)S.sets[k]=e.value;});
@@ -891,16 +907,18 @@ function saveSets(){
     const ce=document.getElementById('cnt-'+id);if(ce){const v=parseInt(ce.value);if(v>=1)S.cnt[id]=v;}
   });
   const gasEl=document.getElementById('s-gas');
-  if(gasEl){ localStorage.setItem('ss_gas_url', gasEl.value.trim()); }
-  persist();
+  if(gasEl && gasEl.value.trim()){ _gasUrlSession = gasEl.value.trim(); }
+  gasStartAutoSync();
   const t=document.getElementById('stToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
-  gasBackupSettings();
+  gasBackupSettings(true);
 }
-function resetSets(){if(!confirm('Zurücksetzen / Reset to defaults?'))return;S.sets={...DS};S.ser={...DSER};loadSetsForm();}
+function resetSets(){if(!confirm('Zurücksetzen / Reset to defaults?'))return;S.sets={...DS};S.ser={...DSER};loadSetsForm();gasPersistState();}
 
 /* ── GAS SYNC (Google Apps Script / Drive) ── */
+const GAS_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbwA-IEp2TN4uk2o3cBxmR9iyaetRU_yYgyB2BXTU6GmK3BEBeNyGRTcOkJk4yc039nB/exec';
+let _gasUrlSession = '';
 function _gasUrl(){
-  return (localStorage.getItem('ss_gas_url') || '').trim();
+  return (_gasUrlSession || GAS_URL_DEFAULT || '').trim();
 }
 function _gasSetStatus(msg, isErr){
   const el=document.getElementById('gasStatus');
@@ -986,6 +1004,38 @@ function gasRestoreSettings(){
     })
     .catch(e=>_gasSetStatus('✗ Fehler / Error: '+e.message, true));
 }
+
+/* ── REMOTE STATE: load settings+history from Drive at startup (no localStorage) ── */
+function gasLoadState(){
+  _gasSetStatus('⏳ Laden von Drive / Loading from Drive…');
+  const p1 = gasCall({action:'restoreSettings'}).catch(()=>null);
+  const p2 = gasCall({action:'getCertHistory'}).catch(()=>null);
+  return Promise.all([p1,p2]).then(([rs,rh])=>{
+    if(rs && rs.ok && rs.settings){
+      if(rs.settings.sets) S.sets={...S.sets, ...rs.settings.sets};
+      if(rs.settings.ser)  S.ser ={...S.ser,  ...rs.settings.ser};
+      if(rs.settings.cnt)  S.cnt ={...S.cnt,  ...rs.settings.cnt};
+    }
+    if(rh && rh.ok){
+      S.hist=(rh.history||[]).map(x=>({
+        no:x.certNo, name:((x.firstName||'')+' '+(x.lastName||'')).trim(),
+        course:x.courseTitle, langs:x.language, type:'cert', date:x.issueDate, id:x.courseId
+      }));
+      S.hist.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+    }
+    loadSetsForm();
+    if(typeof renderHist==='function') renderHist();
+    if(typeof updCnt==='function') updCnt();
+    if(rs||rh) _gasSetStatus('✓ Geladen von Drive / Loaded from Drive');
+    else _gasSetStatus('⚠ Drive nicht erreichbar — leerer Start / Drive unreachable — empty start', true);
+  });
+}
+/* Push current S.sets/ser/cnt to Drive (used after counter increments etc.) */
+function gasPersistState(){
+  if(!_gasUrl()) return Promise.resolve(null);
+  const settingsJson=JSON.stringify({sets:S.sets, ser:S.ser, cnt:S.cnt});
+  return gasCallPost({action:'backupSettings', settingsJson}).catch(()=>null);
+}
 function gasFetchHistory(){
   if(!_gasUrl()){ _gasSetStatus('⚠ Bitte zuerst URL eingeben & speichern / Enter & save URL first', true); return; }
   _gasSetStatus('⏳ Verlauf wird geladen / Loading history…');
@@ -1013,10 +1063,42 @@ function gasFetchHistory(){
     .catch(e=>_gasSetStatus('✗ Fehler / Error: '+e.message, true));
 }
 
+/* ── AUTO-SYNC: poll Drive every 30s + on load/focus (multi-device realtime-ish) ── */
+let _gasAutoSyncTimer = null;
+function gasAutoSyncTick(silent){
+  if(!_gasUrl()) return;
+  gasCall({action:'getCertHistory'}).then(r=>{
+    if(r && r.ok){
+      const remote=(r.history||[]).map(x=>({
+        no:x.certNo, name:((x.firstName||'')+' '+(x.lastName||'')).trim(),
+        course:x.courseTitle, langs:x.language, type:'cert', date:x.issueDate, id:x.courseId
+      }));
+      const known=new Set(S.hist.map(h=>h.no+'|'+h.langs+'|'+h.date));
+      let added=0;
+      remote.forEach(x=>{
+        const key=x.no+'|'+x.langs+'|'+x.date;
+        if(!known.has(key)){ S.hist.push(x); known.add(key); added++; }
+      });
+      if(added>0){
+        S.hist.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+        persist();
+        if(typeof renderHist==='function') renderHist();
+        if(!silent) _gasSetStatus('✓ '+added+' neue Einträge synchronisiert / new entries synced');
+      }
+    }
+  }).catch(()=>{});
+}
+function gasStartAutoSync(){
+  if(_gasAutoSyncTimer) clearInterval(_gasAutoSyncTimer);
+  if(!_gasUrl()) return;
+  gasAutoSyncTick(true);
+  _gasAutoSyncTimer = setInterval(()=>gasAutoSyncTick(true), 30000);
+}
+window.addEventListener('focus', ()=>gasAutoSyncTick(true));
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') gasAutoSyncTick(true); });
+
 /* ── INIT ── */
 function init(){
-  restore();
-  loadSetsForm();
   const today=new Date().toISOString().split('T')[0];
   const dateEl=document.getElementById('inp-date');
   if(dateEl){ dateEl.value=today; }
@@ -1024,6 +1106,8 @@ function init(){
   S.date=today;
   chk0();
   renderCG();
+  // Load all state (settings, series, counters, history) from Drive/Sheets
+  gasLoadState().then(()=>{ gasStartAutoSync(); });
 }
 // Run on DOMContentLoaded for maximum compatibility
 if(document.readyState==='loading'){
