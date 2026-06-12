@@ -3194,9 +3194,11 @@ function _certSyncToGAS() {
     if (S.sets.stampImg) payload.stampImg = S.sets.stampImg;
     fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
-    }).catch(function() {});
+    }).then(function(r){return r.json();}).then(function(d){
+      console.log('[CertGAS] sync ok', d);
+    }).catch(function(err){ console.warn('[CertGAS] sync failed:', err); });
   } catch(e) {}
 }
 
@@ -3211,7 +3213,7 @@ async function _certRestoreFromGAS() {
     if (!url || url.includes('INLOCUIESTE')) return;
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'getCertSettings' })
     });
     const data = await res.json();
@@ -3326,7 +3328,7 @@ function loadStampImg(inp){
     try {
       const _surl = (window._gasUrlOverride || localStorage.getItem('ss_gas_url') || (typeof GAS_URL !== 'undefined' ? GAS_URL : '') || window._GAS_URL || '').trim();
       if (_surl && !_surl.includes('INLOCUIESTE')) {
-        fetch(_surl, { method:'POST', headers:{'Content-Type':'application/json'},
+        fetch(_surl, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
           body: JSON.stringify({ action:'saveCertSettings', stampImg: b64,
             settings: JSON.stringify(S.sets), ser: JSON.stringify(S.ser), cnt: JSON.stringify(S.cnt) })
         }).catch(function(){});
@@ -3345,7 +3347,7 @@ function clearStampImg(){
   try {
     const _surl = (window._gasUrlOverride || localStorage.getItem('ss_gas_url') || (typeof GAS_URL !== 'undefined' ? GAS_URL : '') || window._GAS_URL || '').trim();
     if (_surl && !_surl.includes('INLOCUIESTE')) {
-      fetch(_surl, { method:'POST', headers:{'Content-Type':'application/json'},
+      fetch(_surl, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
         body: JSON.stringify({ action:'saveCertSettings', stampImg: '',
           settings: JSON.stringify(S.sets), ser: JSON.stringify(S.ser), cnt: JSON.stringify(S.cnt) })
       }).catch(function(){});
