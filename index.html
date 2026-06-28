@@ -70,12 +70,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--navy4);color:v
 .fg{display:flex;flex-direction:column;gap:5px}
 .fg.span2{grid-column:1/-1}
 label{font-size:11px;font-weight:600;color:var(--gray2);letter-spacing:.3px;text-transform:uppercase}
-input[type=text],input[type=date],select{
+input[type=text],input[type=date],select,textarea{
   background:rgba(26,58,92,.5);border:1px solid rgba(232,119,34,.2);
   color:var(--silv2);padding:9px 12px;border-radius:6px;font-size:13px;
   font-family:inherit;outline:none;transition:.15s;width:100%}
-input:focus,select:focus{border-color:var(--orange);background:rgba(26,58,92,.8)}
-input::placeholder{color:var(--gray);opacity:1}
+textarea{resize:vertical;min-height:72px;line-height:1.4}
+input:focus,select:focus,textarea:focus{border-color:var(--orange);background:rgba(26,58,92,.8)}
+input::placeholder,textarea::placeholder{color:var(--gray);opacity:1}
 select option{background:var(--navy3)}
 
 /* COURSE CARDS */
@@ -192,6 +193,11 @@ select option{background:var(--navy3)}
 .sg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .trainer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .trainer-grid .sblk{height:100%}
+.content-course-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.content-help{font-size:11px;color:var(--gray2);line-height:1.5;margin:0 0 12px}
+.content-help code{color:var(--orng2);background:rgba(232,119,34,.1);padding:1px 5px;border-radius:3px}
+.content-status{font-size:11px;color:var(--gray2);margin-top:10px;min-height:17px}
+.content-status.ok{color:#2ECC71}.content-status.err{color:#ff9b78}
 .sblk{background:rgba(26,58,92,.4);border:1px solid rgba(232,119,34,.2);border-radius:6px;padding:12px}
 .sblk-t{font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(232,119,34,.12)}
 .sblk.cl .sblk-t{color:var(--gray2)}
@@ -204,7 +210,7 @@ select option{background:var(--navy3)}
 .toast.show{display:inline-flex;align-items:center;gap:6px}
 /* ── RESPONSIVE / MOBILE ── */
 @media(max-width:620px){
-  .fgrid,.fgrid3,.cg,.lg,.sg2,.sg3,.trainer-grid{grid-template-columns:1fr!important}
+  .fgrid,.fgrid3,.cg,.lg,.sg2,.sg3,.trainer-grid,.content-course-grid{grid-template-columns:1fr!important}
 
   /* Topbar: stack logo+brand + nav below */
   .topbar{
@@ -440,6 +446,18 @@ select option{background:var(--navy3)}
   </div>
 
   <div class="sc">
+    <h3>📝 Zertifikatstexte / Texte certificate</h3>
+    <p class="content-help">Textele generale se setează o singură dată. În propoziția de confirmare folosește <code>{COURSE}</code> acolo unde trebuie inserată automat denumirea cursului. Selectează limba în care editezi; la salvare sunt generate traducerile DE/EN/RO, iar fiecare limbă poate fi apoi revizuită manual.</p>
+    <div class="sg2" style="margin-bottom:12px">
+      <div class="fg"><label>Bearbeitungssprache / Limba de editare</label><select id="content-source" onchange="switchContentLanguage(this.value)"><option value="DE">DE · Deutsch</option><option value="EN">EN · English</option><option value="RO">RO · Română</option></select></div>
+      <div class="fg"><label>Übersetzung / Traducere</label><input type="text" value="Automatisch bei Save Settings / Automat la salvare" disabled></div>
+    </div>
+    <div class="sg2" id="content-global-fields"></div>
+    <div class="content-course-grid" id="content-course-fields"></div>
+    <div id="contentTranslateStatus" class="content-status" aria-live="polite"></div>
+  </div>
+
+  <div class="sc">
 <h3>✍️ Trainer &amp; Stempel / Trainer &amp; Stamp</h3>
     <div class="trainer-grid">
       <div class="sblk">
@@ -519,7 +537,7 @@ select option{background:var(--navy3)}
   </div>
 
   <div class="save-row">
-    <button class="sbtn" onclick="saveSets()">✓ Einstellungen speichern / Save Settings</button>
+    <button id="saveSettingsBtn" class="sbtn" onclick="saveSets(this)">✓ Einstellungen speichern / Save Settings</button>
     <button class="sbtn g" onclick="resetSets()">↩ Zurücksetzen / Reset</button>
     <div class="toast" id="stToast">✓ Gespeichert!</div>
   </div>
@@ -580,6 +598,54 @@ DE:{cert:'TEILNAHMEZERTIFIKAT',cl:'PRÜFPROTOKOLL',no:'Zertifikat-Nr.',conf:'Hie
 EN:{cert:'CERTIFICATE OF PARTICIPATION',cl:'INSPECTION REPORT',no:'Certificate No.',conf:'This is to certify that',part:'has successfully completed the following training:',date:'DATE',dur:'DURATION',vld:'VALID UNTIL',topics:'Training Contents',comp:'Qualification Achieved',sigP:'Participant Signature',sigT:'Trainer Signature',stamp:'Stamp',verify:'Verification:',issued:'Issued by',sl:'TRAIN · PREPARE · PROTECT'},
 RO:{cert:'CERTIFICAT DE PARTICIPARE',cl:'PROTOCOL DE VERIFICARE',no:'Nr. certificat',conf:'Prin prezenta se certifică faptul că',part:'a participat cu succes la următorul curs de instruire:',date:'DATA',dur:'DURATĂ',vld:'VALABIL PÂNĂ LA',topics:'Conținutul instruirii',comp:'Competență dobândită',sigP:'Semnătura participantului',sigT:'Semnătura instructorului',stamp:'Ștampilă',verify:'Verificare:',issued:'Emis de',sl:'TRAIN · PREPARE · PROTECT'}
 };
+
+const CONTENT_LANGS=['DE','EN','RO'];
+const CONTENT_COURSE_IDS=['01','04','05','10'];
+const DEFAULT_CERTIFICATE_TITLES={DE:'TEILNAHMEBESCHEINIGUNG',EN:'CERTIFICATE OF PARTICIPATION',RO:'CERTIFICAT DE PARTICIPARE'};
+function defaultParticipation(lang){
+  return {
+    DE:'hat erfolgreich an der Schulung {COURSE} teilgenommen.',
+    EN:'has successfully completed the training {COURSE}.',
+    RO:'a participat cu succes la cursul {COURSE}.'
+  }[lang];
+}
+function ensureContentSettings(){
+  const sets=S.sets;
+  if(!sets.certificateContent||typeof sets.certificateContent!=='object')sets.certificateContent={};
+  const cfg=sets.certificateContent;
+  if(!CONTENT_LANGS.includes(cfg.sourceLang))cfg.sourceLang='EN';
+  if(!cfg.global||typeof cfg.global!=='object')cfg.global={};
+  if(!cfg.courses||typeof cfg.courses!=='object')cfg.courses={};
+  CONTENT_LANGS.forEach(lang=>{
+    const g=(cfg.global[lang]&&typeof cfg.global[lang]==='object')?cfg.global[lang]:{};
+    cfg.global[lang]={
+      certificateTitle:g.certificateTitle!==undefined?g.certificateTitle:DEFAULT_CERTIFICATE_TITLES[lang],
+      intro:g.intro!==undefined?g.intro:T[lang].conf,
+      participation:g.participation!==undefined?g.participation:defaultParticipation(lang),
+      topicsTitle:g.topicsTitle!==undefined?g.topicsTitle:T[lang].topics,
+      qualificationTitle:g.qualificationTitle!==undefined?g.qualificationTitle:T[lang].comp
+    };
+  });
+  CONTENT_COURSE_IDS.forEach(id=>{
+    if(!cfg.courses[id]||typeof cfg.courses[id]!=='object')cfg.courses[id]={};
+    CONTENT_LANGS.forEach(lang=>{
+      const base=C[id][lang],current=(cfg.courses[id][lang]&&typeof cfg.courses[id][lang]==='object')?cfg.courses[id][lang]:{};
+      cfg.courses[id][lang]={
+        title:current.title!==undefined?current.title:base.title,
+        subtitle:current.subtitle!==undefined?current.subtitle:base.sub,
+        topics:Array.isArray(current.topics)?current.topics.slice():base.topics.slice(),
+        qualification:current.qualification!==undefined?current.qualification:base.comp
+      };
+    });
+  });
+  cfg.version=1;
+  return cfg;
+}
+function globalTextFor(lang){return ensureContentSettings().global[lang];}
+function courseTextFor(id,lang){
+  const base=C[id][lang],custom=ensureContentSettings().courses[id][lang];
+  return {...base,title:custom.title,sub:custom.subtitle,topics:custom.topics.slice(),comp:custom.qualification};
+}
 
 /* ── HELPERS ── */
 // Romanian diacritics → ASCII for jsPDF (helvetica doesn't support them)
@@ -724,7 +790,7 @@ function chk0(){
 /* ── STEP 1: COURSES ── */
 function renderCG(){
   document.getElementById('courseGrid').innerHTML=Object.values(C).map(c=>{
-    const d=c.DE,sel=S.course===c.id,isCL=c.t==='checklist';
+    const d=courseTextFor(c.id,'DE'),sel=S.course===c.id,isCL=c.t==='checklist';
     return`<div class="cc ${isCL?'cl':''} ${sel?'sel':''}" onclick="pickCourse('${c.id}')">
       <div class="cc-tag">${isCL?'☑ Protokoll / Checklist':'✓ Zertifikat / Certificate'} · SS-${c.id}</div>
       <div class="cc-title">${d.title}</div>
@@ -813,7 +879,7 @@ async function renderPV(){
 
 /* ── STEP 3: DOWNLOAD ── */
 function renderDL(){
-  const c=C[S.course],d=c.DE,no=certNo(S.course),name=fullName();
+  const c=C[S.course],d=courseTextFor(S.course,'DE'),no=certNo(S.course),name=fullName();
   document.getElementById('sumChips').innerHTML=`
     <div class="chip"><span class="lbl">Teilnehmer / Participant</span>${name}</div>
     <div class="chip"><span class="lbl">Datum / Date</span>${fmt(S.date)}</div>
@@ -1300,7 +1366,7 @@ async function genPDFRasterLegacy(lang,rec=true){
 // the background. All labels and course data use the embedded Arial Narrow.
 async function buildCertificatePDF(lang){
   const {jsPDF}=window.jspdf;
-  const c=C[S.course],d=c[lang],t=T[lang],s=S.sets;
+  const c=C[S.course],d=courseTextFor(S.course,lang),t=T[lang],g=globalTextFor(lang),s=S.sets;
   const no=certNo(S.course),name=fullName(),vt=validUntil(d.valid);
   const trainer=trainerForCourse(S.course);
   const tx=x=>String(x||'');
@@ -1359,23 +1425,22 @@ async function buildCertificatePDF(lang){
   fitText(d.norm,SB/2,120.0,55,8.5,WHITE,'bold');
 
   // Main header and identity block.
-  const certTitle={DE:'TEILNAHMEBESCHEINIGUNG',EN:'CERTIFICATE OF PARTICIPATION',RO:'CERTIFICAT DE PARTICIPARE'}[lang]||t.cert;
+  const certTitle=g.certificateTitle;
   fitText(certTitle,MX+MW/2,8.9,MW-26,19.5,WHITE,'bold');
   fitText(d.title,MX+MW/2,18.0,MW-22,12,PALE,'bold');
-  fitText(t.conf,MX+MW/2,29.8,MW-40,10,TEXT,'italic');
+  fitText(g.intro,MX+MW/2,29.8,MW-40,10,TEXT,'italic');
   fitText(name,MX+MW/2,45.1,MW-22,18,ORANGE,'bold');
 
-  const sentence={
-    DE:[{text:'erfolgreich an der Schulung ',style:'italic'},{text:d.title,style:'bold'},{text:' teilgenommen hat.',style:'italic'}],
-    EN:[{text:'has successfully completed the training ',style:'italic'},{text:d.title,style:'bold'},{text:'.',style:'italic'}],
-    RO:[{text:'a participat cu succes la cursul ',style:'italic'},{text:d.title,style:'bold'},{text:'.',style:'italic'}]
-  }[lang];
+  const participation=tx(g.participation),marker='{COURSE}',markerAt=participation.indexOf(marker);
+  const sentence=markerAt>=0
+    ?[{text:participation.slice(0,markerAt),style:'italic'},{text:d.title,style:'bold'},{text:participation.slice(markerAt+marker.length),style:'italic'}]
+    :[{text:participation,style:'italic'}];
   mixed(sentence,56.7,MW-28,10,TEXT);
   fitText(d.sub,MX+MW/2,65.8,MW-28,10,TEXT,'italic');
 
   // Section headings.
-  fitText('-- '+t.topics+' --',133.6,84.5,110,10,ORANGE_L,'bold');
-  fitText('-- '+t.comp+' --',248.6,84.5,82,10,ORANGE_L,'bold');
+  fitText('-- '+g.topicsTitle+' --',133.6,84.5,110,10,ORANGE_L,'bold');
+  fitText('-- '+g.qualificationTitle+' --',248.6,84.5,82,10,ORANGE_L,'bold');
 
   // Topics: compact line spacing and no tracking between letters.
   let ty=92.9;
@@ -1407,7 +1472,7 @@ async function buildCertificatePDF(lang){
   const fname=ps(no)+'_'+ps(name).replace(/\s+/g,'_')+'_'+lang+'.pdf';
   return {doc,fname,no,vt,d,s,trainer,meta:{
     firstName:S.fn,lastName:S.ln,courseId:S.course,
-    courseTitle:C[S.course].DE.title,issueDate:S.date
+    courseTitle:courseTextFor(S.course,'DE').title,issueDate:S.date
   }};
 }
 
@@ -1427,7 +1492,7 @@ function setDownloadStatus(message,kind=''){
 
 function recordGeneration(no,langs){
   S.cnt[S.course]=(S.cnt[S.course]||1)+1;
-  S.hist.unshift({no,name:fullName(),course:C[S.course].DE.title,
+  S.hist.unshift({no,name:fullName(),course:courseTextFor(S.course,'DE').title,
     langs,type:'cert',date:fmt(S.date),id:S.course});
   _previewCache=null;
   updCnt();gasPersistState();
@@ -1482,9 +1547,87 @@ function renderHist(){
 function clearH(){if(confirm('Verlauf / History löschen / clear?')){S.hist=[];renderHist();}}
 
 /* ── SETTINGS ── */
+let _contentEditorLang='EN';
+const CONTENT_GLOBAL_FIELDS=[
+  ['certificateTitle','Titlu certificat / Zertifikatstitel','text'],
+  ['intro','Formulă introductivă / Einleitungsformel','text'],
+  ['participation','Propoziție confirmare / Teilnahmebestätigung','textarea'],
+  ['topicsTitle','Titlu secțiune conținut / Schulungsinhalte','text'],
+  ['qualificationTitle','Titlu secțiune calificare / Qualifikation','text']
+];
+function contentFieldHtml(id,label,type,value,span=false){
+  const cls=span?'fg span2':'fg',safe=htmlSafe(value||'');
+  return `<div class="${cls}"><label>${label}</label>${type==='textarea'
+    ?`<textarea id="${id}">${safe}</textarea>`
+    :`<input type="text" id="${id}" value="${safe}">`}</div>`;
+}
+function renderContentEditor(lang){
+  const cfg=ensureContentSettings(),g=cfg.global[lang];
+  const globalEl=document.getElementById('content-global-fields');
+  const coursesEl=document.getElementById('content-course-fields');
+  if(!globalEl||!coursesEl)return;
+  globalEl.innerHTML=CONTENT_GLOBAL_FIELDS.map(([key,label,type])=>contentFieldHtml('ct-g-'+key,label,type,g[key],key==='participation')).join('');
+  coursesEl.innerHTML=CONTENT_COURSE_IDS.map(id=>{
+    const c=cfg.courses[id][lang];
+    return `<div class="sblk"><div class="sblk-t">SS-${id} · ${htmlSafe(c.title)}</div>
+      ${contentFieldHtml('ct-'+id+'-title','Denumire curs / Kursname','text',c.title)}
+      ${contentFieldHtml('ct-'+id+'-subtitle','Subtitlu / Descriere','text',c.subtitle)}
+      ${contentFieldHtml('ct-'+id+'-topics','Conținuturi – un punct pe linie','textarea',(c.topics||[]).join('\n'))}
+      ${contentFieldHtml('ct-'+id+'-qualification','Calificare obținută','text',c.qualification)}
+    </div>`;
+  }).join('');
+}
+function captureContentForm(lang=_contentEditorLang){
+  const cfg=ensureContentSettings(),g=cfg.global[lang];
+  CONTENT_GLOBAL_FIELDS.forEach(([key])=>{const el=document.getElementById('ct-g-'+key);if(el)g[key]=el.value.trim();});
+  CONTENT_COURSE_IDS.forEach(id=>{
+    const c=cfg.courses[id][lang];
+    const title=document.getElementById('ct-'+id+'-title');if(title)c.title=title.value.trim();
+    const subtitle=document.getElementById('ct-'+id+'-subtitle');if(subtitle)c.subtitle=subtitle.value.trim();
+    const topics=document.getElementById('ct-'+id+'-topics');if(topics)c.topics=topics.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    const qualification=document.getElementById('ct-'+id+'-qualification');if(qualification)c.qualification=qualification.value.trim();
+  });
+  cfg.sourceLang=lang;
+}
+function switchContentLanguage(lang){
+  if(!CONTENT_LANGS.includes(lang))return;
+  captureContentForm(_contentEditorLang);
+  _contentEditorLang=lang;
+  ensureContentSettings().sourceLang=lang;
+  renderContentEditor(lang);
+  setContentStatus('Editezi versiunea '+lang+'. La salvare aceasta devine sursa traducerilor.');
+}
+function setContentStatus(message,kind=''){
+  const el=document.getElementById('contentTranslateStatus');if(!el)return;
+  el.textContent=message||'';el.className='content-status'+(kind?' '+kind:'');
+}
+async function translateContentSettings(){
+  const cfg=ensureContentSettings(),sourceLang=cfg.sourceLang;
+  const payload={global:cfg.global[sourceLang],courses:{}};
+  CONTENT_COURSE_IDS.forEach(id=>payload.courses[id]=cfg.courses[id][sourceLang]);
+  setContentStatus('Se traduc textele în DE, EN și RO…');
+  try{
+    const r=await gasCallPost({action:'translateCourseContent',sourceLang,contentJson:JSON.stringify(payload)},120000);
+    if(!r||!r.ok||!r.translations)throw new Error(r&&r.error||'Serviciul de traducere nu a răspuns');
+    CONTENT_LANGS.forEach(lang=>{
+      const translated=r.translations[lang];if(!translated)return;
+      if(translated.global)cfg.global[lang]={...cfg.global[lang],...translated.global};
+      CONTENT_COURSE_IDS.forEach(id=>{if(translated.courses&&translated.courses[id])cfg.courses[id][lang]={...cfg.courses[id][lang],...translated.courses[id]};});
+    });
+    setContentStatus('Traducerile DE/EN/RO au fost actualizate și pot fi revizuite manual.','ok');
+    return true;
+  }catch(err){
+    setContentStatus('Textele sursă au fost păstrate, dar traducerea automată a eșuat: '+(err.message||err),'err');
+    return false;
+  }
+}
 const SF=[['s-co','co'],['s-cui','cui'],['s-reg','reg'],['s-adr','adr'],['s-city','city'],['s-tel','tel'],['s-em1','em1'],['s-em2','em2'],['s-url','url']];
 function loadSetsForm(){
   SF.forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=S.sets[k]||'';});
+  const content=ensureContentSettings();
+  _contentEditorLang=content.sourceLang;
+  const source=document.getElementById('content-source');if(source)source.value=_contentEditorLang;
+  renderContentEditor(_contentEditorLang);
   const trainers=ensureTrainerSettings(false);
   TRAINER_COURSE_IDS.forEach(id=>{
     const tr=trainers[id];
@@ -1499,8 +1642,11 @@ function loadSetsForm(){
   const gasEl=document.getElementById('s-gas');
   if(gasEl){ gasEl.value = _gasUrl(); }
 }
-function saveSets(){
+async function saveSets(button){
+  const saveButton=button||document.getElementById('saveSettingsBtn');
+  if(saveButton)saveButton.disabled=true;
   SF.forEach(([id,k])=>{const e=document.getElementById(id);if(e)S.sets[k]=e.value;});
+  captureContentForm(_contentEditorLang);
   ensureTrainerSettings(false);
   TRAINER_COURSE_IDS.forEach(id=>{
     const name=document.getElementById('s-tn-'+id);
@@ -1520,8 +1666,14 @@ function saveSets(){
   const gasEl=document.getElementById('s-gas');
   if(gasEl && gasEl.value.trim()){ _gasUrlSession = gasEl.value.trim(); }
   gasStartAutoSync();
-  const t=document.getElementById('stToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
-  gasBackupSettings(true);
+  try{
+    await translateContentSettings();
+    await gasBackupSettings(true);
+    _previewCache=null;
+    const t=document.getElementById('stToast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);
+  }finally{
+    if(saveButton)saveButton.disabled=false;
+  }
 }
 function resetSets(){if(!confirm('Zurücksetzen / Reset to defaults?'))return;S.sets={...DS};S.ser={...DSER};loadSetsForm();gasPersistState();}
 
@@ -1588,10 +1740,10 @@ function gasSaveCertificate(data){
     });
 }
 function gasBackupSettings(manual){
-  if(!_gasUrl()){ if(manual) _gasSetStatus('⚠ Bitte zuerst URL eingeben & speichern / Enter & save URL first', true); return; }
+  if(!_gasUrl()){ if(manual) _gasSetStatus('⚠ Bitte zuerst URL eingeben & speichern / Enter & save URL first', true); return Promise.resolve(null); }
   if(manual) _gasSetStatus('⏳ Einstellungen werden gesichert / Backing up settings…');
   const settingsJson=JSON.stringify({sets:S.sets, ser:S.ser, cnt:S.cnt});
-  gasCallPost({action:'backupSettings', settingsJson})
+  return gasCallPost({action:'backupSettings', settingsJson, createBackup:true})
     .then(r=>{
       if(r && r.ok) _gasSetStatus('✓ Einstellungen gesichert / Settings backed up ('+(r.ts||'')+')');
       else if(manual) _gasSetStatus('✗ Sicherung fehlgeschlagen / Backup failed: '+(r&&r.error||''), true);
@@ -1612,6 +1764,7 @@ function gasRestoreSettings(){
         if(r.settings.cnt)  S.cnt ={...S.cnt,  ...r.settings.cnt};
         persist();
         loadSetsForm();
+        renderCG();
         _gasSetStatus('✓ Wiederhergestellt / Restored');
       } else if(r && r.ok){
         _gasSetStatus('ℹ Kein Backup vorhanden / No backup found');
@@ -1643,17 +1796,18 @@ function gasLoadState(){
       S.hist.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
     }
     loadSetsForm();
+    renderCG();
     if(typeof renderHist==='function') renderHist();
     if(typeof updCnt==='function') updCnt();
     if(rs||rh) _gasSetStatus('✓ Geladen von Drive / Loaded from Drive');
     else _gasSetStatus('⚠ Drive nicht erreichbar — leerer Start / Drive unreachable — empty start', true);
   });
 }
-/* Push current S.sets/ser/cnt to Drive (used after counter increments etc.) */
+/* Update current state in Sheets without creating a backup file. */
 function gasPersistState(){
   if(!_gasUrl()) return Promise.resolve(null);
   const settingsJson=JSON.stringify({sets:S.sets, ser:S.ser, cnt:S.cnt});
-  return gasCallPost({action:'backupSettings', settingsJson}).catch(()=>null);
+  return gasCallPost({action:'backupSettings', settingsJson, createBackup:false}).catch(()=>null);
 }
 function gasFetchHistory(){
   if(!_gasUrl()){ _gasSetStatus('⚠ Bitte zuerst URL eingeben & speichern / Enter & save URL first', true); return; }
