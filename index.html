@@ -178,6 +178,8 @@ select option{background:var(--navy3)}
 .sc h3{font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem;padding-bottom:8px;border-bottom:1px solid rgba(232,119,34,.15)}
 .sg2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .sg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.trainer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.trainer-grid .sblk{height:100%}
 .sblk{background:rgba(26,58,92,.4);border:1px solid rgba(232,119,34,.2);border-radius:6px;padding:12px}
 .sblk-t{font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(232,119,34,.12)}
 .sblk.cl .sblk-t{color:var(--gray2)}
@@ -190,7 +192,7 @@ select option{background:var(--navy3)}
 .toast.show{display:inline-flex;align-items:center;gap:6px}
 /* ── RESPONSIVE / MOBILE ── */
 @media(max-width:620px){
-  .fgrid,.fgrid3,.cg,.lg,.sg2,.sg3{grid-template-columns:1fr!important}
+  .fgrid,.fgrid3,.cg,.lg,.sg2,.sg3,.trainer-grid{grid-template-columns:1fr!important}
 
   /* Topbar: stack logo+brand + nav below */
   .topbar{
@@ -428,14 +430,48 @@ select option{background:var(--navy3)}
   </div>
 
   <div class="sc">
-    <h3>✍️ Trainer &amp; Stempel / Trainer &amp; Stamp</h3>
-    <div class="sg3">
-      <div class="fg"><label>Trainer Name</label><input type="text" id="s-tn" placeholder="Max Mustermann"></div>
-      <div class="fg"><label>Qualifikation / Qualification</label><input type="text" id="s-tq" placeholder="DGUV-Trainer, Sifa"></div>
-      <div class="fg"><label>Registrierungs-Nr. / Reg. No.</label><input type="text" id="s-tr" placeholder="TR-12345"></div>
-      <div class="fg"><label>Stempel-Nr. / Stamp No.</label><input type="text" id="s-sn" placeholder="ST-2025-001"></div>
-      <div class="fg"><label>Stempel / Stamp Zeile / Line 1</label><input type="text" id="s-s1" placeholder="SicherShield SRL"></div>
-      <div class="fg"><label>Stempel / Stamp Zeile / Line 2</label><input type="text" id="s-s2" placeholder="Zert. Schulungsträger"></div>
+<h3>✍️ Trainer &amp; Stempel / Trainer &amp; Stamp</h3>
+    <div class="trainer-grid">
+      <div class="sblk">
+        <div class="sblk-t">SS-01 · PSA gegen Absturz / EIP anticădere</div>
+        <div class="sg3">
+          <div class="fg"><label>Trainer Name / Nume trainer</label><input type="text" id="s-tn-01" placeholder="Max Mustermann"></div>
+          <div class="fg"><label>Qualifikation / Qualification / Calificare</label><input type="text" id="s-tq-01" placeholder="DGUV-Trainer, Sifa"></div>
+          <div class="fg"><label>Qualifikations-/Reg.-Nr. / Nr. calificare</label><input type="text" id="s-tr-01" placeholder="TR-12345"></div>
+        </div>
+      </div>
+      <div class="sblk">
+        <div class="sblk-t">SS-04 · EuP / Elektrische Sicherheit</div>
+        <div class="sg3">
+          <div class="fg"><label>Trainer Name / Nume trainer</label><input type="text" id="s-tn-04" placeholder="Max Mustermann"></div>
+          <div class="fg"><label>Qualifikation / Qualification / Calificare</label><input type="text" id="s-tq-04" placeholder="Elektrofachkraft, EuP-Trainer"></div>
+          <div class="fg"><label>Qualifikations-/Reg.-Nr. / Nr. calificare</label><input type="text" id="s-tr-04" placeholder="EUP-12345"></div>
+        </div>
+      </div>
+      <div class="sblk">
+        <div class="sblk-t">SS-05 · Arbeitsschutz / SSM</div>
+        <div class="sg3">
+          <div class="fg"><label>Trainer Name / Nume trainer</label><input type="text" id="s-tn-05" placeholder="Max Mustermann"></div>
+          <div class="fg"><label>Qualifikation / Qualification / Calificare</label><input type="text" id="s-tq-05" placeholder="DGUV-Trainer, Sifa"></div>
+          <div class="fg"><label>Qualifikations-/Reg.-Nr. / Nr. calificare</label><input type="text" id="s-tr-05" placeholder="AS-12345"></div>
+        </div>
+      </div>
+      <div class="sblk">
+        <div class="sblk-t">SS-10 · Erste Hilfe / Prim ajutor</div>
+        <div class="sg3">
+          <div class="fg"><label>Trainer Name / Nume trainer</label><input type="text" id="s-tn-10" placeholder="Max Mustermann"></div>
+          <div class="fg"><label>Qualifikation / Qualification / Calificare</label><input type="text" id="s-tq-10" placeholder="Erste-Hilfe-Ausbilder"></div>
+          <div class="fg"><label>Qualifikations-/Reg.-Nr. / Nr. calificare</label><input type="text" id="s-tr-10" placeholder="EH-12345"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sblk">
+      <div class="sblk-t">Stempel / Stamp / Ștampilă (global)</div>
+      <div class="sg3">
+        <div class="fg"><label>Stempel-Nr. / Stamp No.</label><input type="text" id="s-sn" placeholder="ST-2025-001"></div>
+        <div class="fg"><label>Stempel / Stamp Zeile / Line 1</label><input type="text" id="s-s1" placeholder="SicherShield SRL"></div>
+        <div class="fg"><label>Stempel / Stamp Zeile / Line 2</label><input type="text" id="s-s2" placeholder="Zert. Schulungsträger"></div>
+      </div>
     </div>
   </div>
 
@@ -595,7 +631,32 @@ function fullName(){
   const ln=(S.ln||document.getElementById('inp-ln')?.value||'').trim();
   return (fn+' '+ln).trim()||'— Name —';
 }
-function trainerLine(){const s=S.sets;return s.tn?(s.tn+(s.tq?' · '+s.tq:'')+(s.tr?' ('+s.tr+')':'')):null}
+const TRAINER_COURSE_IDS=['01','04','05','10'];
+function ensureTrainerSettings(forceLegacy=false){
+  const s=S.sets;
+  const legacy={name:s.tn||'',qualification:s.tq||'',regNo:s.tr||''};
+  const legacyHas=!!(legacy.name||legacy.qualification||legacy.regNo);
+  if(!s.trainers||typeof s.trainers!=='object')s.trainers={};
+  TRAINER_COURSE_IDS.forEach(id=>{
+    const current=(s.trainers[id]&&typeof s.trainers[id]==='object')?s.trainers[id]:{};
+    const useLegacy=forceLegacy&&legacyHas;
+    s.trainers[id]={
+      name:useLegacy?legacy.name:(current.name!==undefined?current.name:''),
+      qualification:useLegacy?legacy.qualification:(current.qualification!==undefined?current.qualification:''),
+      regNo:useLegacy?legacy.regNo:(current.regNo!==undefined?current.regNo:'')
+    };
+  });
+  s.trainerConfigVersion=2;
+  return s.trainers;
+}
+function trainerForCourse(id=S.course){
+  const trainers=ensureTrainerSettings(false);
+  return trainers[id]||{name:'',qualification:'',regNo:''};
+}
+function trainerLine(id=S.course){
+  const tr=trainerForCourse(id);
+  return tr.name?(tr.name+(tr.qualification?' · '+tr.qualification:'')+(tr.regNo?' ('+tr.regNo+')':'')):null;
+}
 function stampLine(){const s=S.sets;return(s.sn?'Nr.'+s.sn+' ':'')+( s.s1||'')}
 
 /* ── PAGE NAV ── */
@@ -762,13 +823,13 @@ async function genAll(){
   updCnt();
   gasPersistState();
   generated.forEach(({lang,result})=>{
-    const {no,vt,d,s,_pdfB64}=result;
+    const {no,vt,d,s,trainer,_pdfB64}=result;
     gasSaveCertificate({
       certNo: no, firstName: S.fn, lastName: S.ln, position: S.pos,
       company: S.co2, department: S.dept, courseId: S.course,
       courseTitle: C[S.course].DE.title, norm: d.norm, duration: d.dur,
       language: lang, issueDate: S.date, validUntil: vt,
-      certNumber: no, trainerId: s.tr, company_issuer: s.co,
+      certNumber: no, trainerId: trainer.regNo, company_issuer: s.co,
       pdfBase64: _pdfB64
     });
   });
@@ -1217,6 +1278,7 @@ async function genPDF(lang,rec=true){
   const {jsPDF}=window.jspdf;
   const c=C[S.course],d=c[lang],t=T[lang],s=S.sets;
   const no=certNo(S.course),name=fullName(),vt=validUntil(d.valid);
+  const trainer=trainerForCourse(S.course);
   const tx=x=>String(x||'');
   const ps=x=>pdfSafe(x||'');
   const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
@@ -1307,6 +1369,10 @@ async function genPDF(lang,rec=true){
   doc.setTextColor(...ORANGE);
   doc.text(qLines,248.6,111-qLines.length*1.8,{align:'center'});
 
+  if(trainer.name)fitText(trainer.name,107.5,185.2,68,8.5,TEXT,'bold');
+  const regLabel={DE:'Qual.-Nr.',EN:'Qual. No.',RO:'Nr. calificare'}[lang]||'No.';
+  const trainerDetails=[trainer.qualification,trainer.regNo?(regLabel+' '+trainer.regNo):''].filter(Boolean).join(' · ');
+  if(trainerDetails)fitText(trainerDetails,107.5,188.7,68,7,TEXT,'normal');
   fitText(t.sigT,107.5,196.6,48,8,TEXT,'normal');
   fitText(t.stamp,250.5,196.6,28,8,TEXT,'normal');
 
@@ -1328,10 +1394,10 @@ async function genPDF(lang,rec=true){
       company:S.co2,department:S.dept,courseId:S.course,
       courseTitle:C[S.course].DE.title,norm:d.norm,duration:d.dur,
       language:lang,issueDate:S.date,validUntil:vt,
-      certNumber:no,trainerId:s.tr,company_issuer:s.co,pdfBase64:_pdfB64
+      certNumber:no,trainerId:trainer.regNo,company_issuer:s.co,pdfBase64:_pdfB64
     });
   }
-  return {no,vt,d,s,_pdfB64};
+  return {no,vt,d,s,trainer,_pdfB64};
 }
 
 function renderHist(){
@@ -1343,9 +1409,16 @@ function renderHist(){
 function clearH(){if(confirm('Verlauf / History löschen / clear?')){S.hist=[];renderHist();}}
 
 /* ── SETTINGS ── */
-const SF=[['s-co','co'],['s-cui','cui'],['s-reg','reg'],['s-adr','adr'],['s-city','city'],['s-tel','tel'],['s-em1','em1'],['s-em2','em2'],['s-url','url'],['s-tn','tn'],['s-tq','tq'],['s-tr','tr'],['s-sn','sn'],['s-s1','s1'],['s-s2','s2']];
+const SF=[['s-co','co'],['s-cui','cui'],['s-reg','reg'],['s-adr','adr'],['s-city','city'],['s-tel','tel'],['s-em1','em1'],['s-em2','em2'],['s-url','url'],['s-sn','sn'],['s-s1','s1'],['s-s2','s2']];
 function loadSetsForm(){
   SF.forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=S.sets[k]||'';});
+  const trainers=ensureTrainerSettings(false);
+  TRAINER_COURSE_IDS.forEach(id=>{
+    const tr=trainers[id];
+    const name=document.getElementById('s-tn-'+id);if(name)name.value=tr.name||'';
+    const qual=document.getElementById('s-tq-'+id);if(qual)qual.value=tr.qualification||'';
+    const reg=document.getElementById('s-tr-'+id);if(reg)reg.value=tr.regNo||'';
+  });
   ['01','04','05','10'].forEach(id=>{
     const se=document.getElementById('sr-'+id);if(se)se.value=S.ser[id]||'';
     const ce=document.getElementById('cnt-'+id);if(ce)ce.value=S.cnt[id]||1;
@@ -1355,6 +1428,18 @@ function loadSetsForm(){
 }
 function saveSets(){
   SF.forEach(([id,k])=>{const e=document.getElementById(id);if(e)S.sets[k]=e.value;});
+  ensureTrainerSettings(false);
+  TRAINER_COURSE_IDS.forEach(id=>{
+    const name=document.getElementById('s-tn-'+id);
+    const qual=document.getElementById('s-tq-'+id);
+    const reg=document.getElementById('s-tr-'+id);
+    S.sets.trainers[id]={
+      name:name?name.value.trim():'',
+      qualification:qual?qual.value.trim():'',
+      regNo:reg?reg.value.trim():''
+    };
+  });
+  S.sets.trainerConfigVersion=2;
   ['01','04','05','10'].forEach(id=>{
     const se=document.getElementById('sr-'+id);if(se)S.ser[id]=se.value;
     const ce=document.getElementById('cnt-'+id);if(ce){const v=parseInt(ce.value);if(v>=1)S.cnt[id]=v;}
@@ -1443,7 +1528,9 @@ function gasRestoreSettings(){
   gasCall({action:'restoreSettings'})
     .then(r=>{
       if(r && r.ok && r.settings){
+        const migrateLegacyTrainer=!!(r.settings.sets&&!r.settings.sets.trainers);
         if(r.settings.sets) S.sets={...S.sets, ...r.settings.sets};
+        ensureTrainerSettings(migrateLegacyTrainer);
         if(r.settings.ser)  S.ser ={...S.ser,  ...r.settings.ser};
         if(r.settings.cnt)  S.cnt ={...S.cnt,  ...r.settings.cnt};
         persist();
@@ -1465,7 +1552,9 @@ function gasLoadState(){
   const p2 = gasCall({action:'getCertHistory'}).catch(()=>null);
   return Promise.all([p1,p2]).then(([rs,rh])=>{
     if(rs && rs.ok && rs.settings){
+      const migrateLegacyTrainer=!!(rs.settings.sets&&!rs.settings.sets.trainers);
       if(rs.settings.sets) S.sets={...S.sets, ...rs.settings.sets};
+      ensureTrainerSettings(migrateLegacyTrainer);
       if(rs.settings.ser)  S.ser ={...S.ser,  ...rs.settings.ser};
       if(rs.settings.cnt)  S.cnt ={...S.cnt,  ...rs.settings.cnt};
     }
